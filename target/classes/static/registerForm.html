@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient Registration - HealthPortal</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="registerForm.css"/>
+</head>
+
+<body class="bg-background-light min-h-screen">
+
+<header class="header">
+  <div class="logo">
+    <span class="material-symbols-outlined">medical_services</span>
+    <h2>HealthPortal</h2>
+  </div>
+  <button onclick="window.location.href='login.html'" class="btn-primary">Sign In</button>
+</header>
+
+<main class="container">
+  <div class="form-card">
+    <h3 class="title">Patient Registration</h3>
+    <p class="subtitle">Please fill in your details to create a new account.</p>
+
+    <form id="registerForm" class="space-y-6">
+
+      <div class="grid grid-cols-2 gap-4">
+        <input id="firstName" type="text" placeholder="First Name" class="input"/>
+        <input id="lastName" type="text" placeholder="Last Name" class="input"/>
+      </div>
+
+      <input id="email" type="email" placeholder="Email Address" class="input"/>
+      <input id="phone" type="tel" placeholder="Phone Number" class="input"/>
+
+      <div class="grid grid-cols-2 gap-4">
+        <input id="password" type="password" placeholder="Password" class="input"/>
+        <input id="confirmPassword" type="password" placeholder="Confirm Password" class="input"/>
+      </div>
+
+      <button type="submit" class="btn-primary w-full">Create Account</button>
+    </form>
+
+    <p class="login-link">
+      Already have an account?
+      <a href="login.html">Sign in here</a>
+    </p>
+  </div>
+</main>
+
+<script src="registerForm.js"></script>
+</body>
+</html>

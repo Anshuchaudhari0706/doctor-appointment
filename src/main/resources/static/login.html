@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Doctor Appointment</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="login.css"/>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-[Inter]">
+
+<div class="login-card">
+  <h2 class="title">Login</h2>
+
+  <form id="loginForm" class="space-y-4">
+
+    <input id="email" type="email" placeholder="Email"
+      class="input" required />
+
+    <input id="password" type="password" placeholder="Password"
+      class="input" required />
+
+    <!-- Login Button -->
+    <button type="submit" class="btn-login">
+      Sign In
+    </button>
+
+    <!-- New User -->
+    <div class="text-center mt-4">
+      <span class="text-blue-600 font-semibold">New user?</span>
+      <a href="register.html" class="text-blue-600 font-bold hover:underline ml-1">
+        Register here
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<script src="login.js"></script>
+</body>
+</html>
