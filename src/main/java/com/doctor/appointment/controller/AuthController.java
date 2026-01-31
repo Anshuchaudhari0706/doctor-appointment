@@ -75,8 +75,15 @@ public class AuthController {
             user.setPassword(encoder.encode(user.getPassword()));
             User savedUser = userRepository.save(user);
 
-            // Send Welcome Email
-            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
+            // Send Welcome Email only for Doctors
+            if ("doctor".equalsIgnoreCase(savedUser.getRole())) {
+                try {
+                    emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
+                } catch (Exception emailEx) {
+                    // Log but don't fail registration if email fails
+                    System.err.println("Failed to send welcome email: " + emailEx.getMessage());
+                }
+            }
 
             // Cleanup OTP
             otpStorage.remove(user.getEmail());
