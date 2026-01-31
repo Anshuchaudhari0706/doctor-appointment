@@ -1261,45 +1261,54 @@ const TabCalendar = () => {
     `;
 };
 
-const TabPayment = () => `
+const TabPayment = () => {
+    const pendingPayments = state.appointments.filter(a => a.status === 'ACCEPTED');
+    const history = state.appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'COMPLETED');
+
+    return `
     <div class="grid-cols-2">
         <div class="card">
             <div class="card-header">
-                <div class="card-title">Pending Invoice</div>
-                <span class="status-badge status-pending">Unpaid</span>
+                <div class="card-title">Pending Invoices</div>
+                <span class="status-badge status-pending">${pendingPayments.length} Unpaid</span>
             </div>
-            <div style="text-align:center;padding:1.5rem 0;">
-                <p class="text-muted">Consultation Fee</p>
-                <h1 style="font-size:2.5rem;margin:0.5rem 0;">$150.00</h1>
-                <p class="text-sm text-muted">Due Date: Nov 30, 2023</p>
+            ${pendingPayments.length === 0 ? '<p class="text-muted text-center py-4">No pending payments.</p>' : ''}
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+                ${pendingPayments.map(apt => `
+                    <div style="padding:1rem; border:1px solid var(--border); border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span style="font-weight:600;">${apt.doctorName}</span>
+                            <span style="font-weight:700;">Rs. 500</span>
+                        </div>
+                        <div class="text-sm text-muted mb-2">${apt.type || 'Consultation'} • ${apt.date}</div>
+                        <button class="btn btn-primary btn-sm" style="width:100%" onclick="payForAppointment('${apt.id}')">Pay Now</button>
+                    </div>
+                `).join('')}
             </div>
-            <button class="btn btn-primary" style="width:100%" onclick="alert('Payment functionality connecting to Gateway...')">Pay Now</button>
         </div>
 
         <div class="card">
             <div class="card-header"><div class="card-title">Payment History</div></div>
             <table>
                 <thead>
-                    <tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr>
+                    <tr><th>Date</th><th>Doctor</th><th>Amnt</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                     <tr>
-                        <td>Oct 20, 2023</td>
-                        <td>General Checkup</td>
-                        <td>$80.00</td>
-                        <td><span style="color:var(--success)">Paid</span></td>
-                    </tr>
-                    <tr>
-                        <td>Sep 15, 2023</td>
-                        <td>Blood Test</td>
-                        <td>$120.00</td>
-                        <td><span style="color:var(--success)">Paid</span></td>
-                    </tr>
+                    ${history.length === 0 ? '<tr><td colspan="4" class="text-center text-muted">No payment history.</td></tr>' : ''}
+                    ${history.map(apt => `
+                        <tr>
+                            <td>${apt.date}</td>
+                            <td>${apt.doctorName}</td>
+                            <td>Rs. 500</td>
+                            <td><span style="color:var(--success)">Paid</span></td>
+                        </tr>
+                    `).join('')}
                 </tbody>
             </table>
         </div>
     </div>
-`;
+    `;
+};
 
 const TabSupport = () => `
     <div class="card" style="height: 600px; display: flex; flex-direction: column;">
