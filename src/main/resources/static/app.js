@@ -247,22 +247,16 @@ async function login(e) {
         const data = await res.json();
 
         if (data.success) {
-            // Check if selected role matches backend role (to prevent mismatch confusing user)
-            // Or just overwrite with backend role
-            if (state.selectedRole !== data.role && data.role !== 'patient') {
-                // Allow patient to sign in even if 'doctor' tab selected? Maybe warn.
-                // For now, let's just use what the backend returned.
-            }
-
             state.user = {
                 name: data.name,
                 email: data.email,
                 role: data.role,
-                avatar: data.name.substring(0, 2).toUpperCase()
+                avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
             navigate('dashboard');
         } else {
-            alert(data.message);
+            console.warn("Login failed response:", data);
+            alert(data.message || 'Login failed. Please check your credentials.');
         }
     } catch (err) {
         console.error("Login Error:", err);
