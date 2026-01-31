@@ -58,7 +58,7 @@ function setRole(role) {
 }
 
 // Use relative path so it works on localhost, 192.168.x.x, and public URLs automatically
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 const API_URL = `${API_BASE}/auth`;
 
 // --- DATA FETCHING ---
