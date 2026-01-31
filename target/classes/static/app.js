@@ -266,6 +266,11 @@ async function login(e) {
 
 async function register(e) {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const originalText = btn.innerText;
+    btn.innerText = 'Registering...';
+    btn.disabled = true;
+
     const name = document.getElementById('reg-name').value;
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
@@ -274,20 +279,27 @@ async function register(e) {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role: state.selectedRole })
+            body: JSON.stringify({ name, email, password, role: state.selectedRole || 'patient' })
         });
+
+        if (!res.ok) {
+            throw new Error(`Server Error (${res.status})`);
+        }
 
         const data = await res.json();
 
-        if (data.success || data.message === "User registered successfully") {
+        if (data.success || data.message.toLowerCase().includes('success')) {
             alert('Registration successful! Please login.');
             navigate('login');
         } else {
-            alert(data.message || 'Registration failed (Unknown Error)');
+            alert(data.message || 'Registration failed (Unknown reason).');
         }
     } catch (err) {
-        console.error(err);
-        alert('Registration failed.');
+        console.error("Registration Error:", err);
+        alert(`Registration failed: ${err.message}. Please try again.`);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 }
 
