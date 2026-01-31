@@ -285,11 +285,11 @@ async function register(e) {
 
         const data = await res.json();
 
-        if (data.success) {
+        if (data.success || data.message === "User registered successfully") {
             alert('Registration successful! Please login.');
             navigate('login');
         } else {
-            alert(data.message);
+            alert(data.message || 'Registration failed (Unknown Error)');
         }
     } catch (err) {
         console.error(err);
