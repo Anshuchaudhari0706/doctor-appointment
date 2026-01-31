@@ -1,28 +1,30 @@
 package com.doctor.appointment.service;
 
-import com.doctor.appointment.model.Payment;
-import com.doctor.appointment.repository.PaymentRepository;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class PaymentService {
 
-    @Autowired
-    private PaymentRepository paymentRepository;
+    @Value("${razorpay.key_id}")
+    private String keyId;
 
-    public List<Payment> getAllPayments() {
-        return paymentRepository.findAll();
-    }
+    @Value("${razorpay.key_secret}")
+    private String keySecret;
 
-    public Payment savePayment(Payment payment) {
-        return paymentRepository.save(payment);
-    }
+    public String createOrder(double amount) throws RazorpayException {
+        RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
 
-    public List<Payment> getByAppointment(String appointmentId) {
-        return paymentRepository.findByAppointmentId(appointmentId);
+        JSONObject orderRequest = new JSONObject();
+        orderRequest.put("amount", amount * 100); // Amount in paise
+        orderRequest.put("currency", "INR");
+        orderRequest.put("receipt", "txn_" + System.currentTimeMillis());
+
+        Order order = razorpay.orders.create(orderRequest);
+        return order.toString();
     }
 }
