@@ -1160,7 +1160,10 @@ const TabBookings = () => `
 
 const TabBookNew = () => `
     <div class="card">
-        <h3>Book New Appointment</h3>
+        <div class="card-header">
+            <div class="card-title">Book New Appointment</div>
+            <button class="btn btn-secondary btn-sm" onclick="fetchDoctors()"><i class="fas fa-sync"></i> Refresh Doctors</button>
+        </div>
         <div class="form-group mt-4">
             <input type="text" class="form-input" placeholder="Search for doctors, specialities..." oninput="/* TODO filter logic */">
         </div>
