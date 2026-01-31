@@ -57,8 +57,10 @@ function setRole(role) {
     render();
 }
 
-// Use relative path so it works on localhost, 192.168.x.x, and public URLs automatically
-const API_BASE = '/api';
+// Dynamic API_BASE for local vs production
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8080/api'
+    : '/api';
 const API_URL = `${API_BASE}/auth`;
 
 // --- DATA FETCHING ---
@@ -713,7 +715,7 @@ const DoctorDashboardHome = () => `
 
 const DoctorSchedule = () => `
     <div class="card" style="max-width:800px; margin:0 auto;">
-         <div class="card-header"><div class="card-title">My Availability & Fees</div></div>
+         <div class="card-header"><div class="card-title">Manage Availability</div></div>
          <form onsubmit="updateAvailability(event)">
             <div class="form-group">
                 <label class="form-label">Specialization</label>
@@ -763,7 +765,7 @@ const DoctorSchedule = () => `
                 </div>
             </div>
 
-            <button class="btn btn-primary" style="width:100%">Save Profile</button>
+            <button class="btn btn-primary" style="width:100%">Save Availability</button>
         </form>
     </div>
 `;
