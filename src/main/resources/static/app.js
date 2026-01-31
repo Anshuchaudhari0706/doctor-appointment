@@ -48,6 +48,7 @@ function setTab(tab) {
     if (tab === 'appointments' && state.selectedRole === 'doctor') fetchDoctorAppointments();
     if (tab === 'reports') fetchReports();
     if (tab === 'profile') fetchPatientProfile(); // Pre-fill profile
+    if (tab === 'my-schedule') fetchDoctorProfile();
     render();
 }
 
@@ -57,7 +58,7 @@ function setRole(role) {
 }
 
 // Use relative path so it works on localhost, 192.168.x.x, and public URLs automatically
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:8080/api';
 const API_URL = `${API_BASE}/auth`;
 
 // --- DATA FETCHING ---
@@ -222,6 +223,19 @@ async function savePatientProfile(e) {
         console.error(e);
         alert('Failed to save profile');
     }
+}
+
+async function fetchDoctorProfile() {
+    if (!state.user) return;
+    try {
+        const res = await fetch(`${API_BASE}/doctors/profile/${state.user.email}`);
+        const data = await res.json();
+        if (data) {
+            state.doctorProfile = data;
+            window.tempSchedule = data.schedule || [];
+            render();
+        }
+    } catch (e) { console.error("Failed to fetch doctor profile", e); }
 }
 
 async function bookAppointmentBackend(docId, docName, docEmail) {
@@ -703,11 +717,11 @@ const DoctorSchedule = () => `
          <form onsubmit="updateAvailability(event)">
             <div class="form-group">
                 <label class="form-label">Specialization</label>
-                <input type="text" id="doc-spec" class="form-input" placeholder="e.g. Cardiologist" required>
+                <input type="text" id="doc-spec" class="form-input" placeholder="e.g. Cardiologist" value="${state.doctorProfile?.specialization || ''}" required>
             </div>
              <div class="form-group">
                 <label class="form-label">Consultation Fee ($)</label>
-                <input type="number" id="doc-fee" class="form-input" placeholder="100" required>
+                <input type="number" id="doc-fee" class="form-input" placeholder="100" value="${state.doctorProfile?.consultationFee || ''}" required>
             </div>
             
             <div class="form-group">
@@ -740,7 +754,12 @@ const DoctorSchedule = () => `
             <div class="form-group">
                 <label class="form-label">Planned Schedule</label>
                 <div id="schedule-list" style="display:flex; flex-wrap:wrap; gap:0.5rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:8px; min-height:50px;">
-                    <!-- Slots will go here -->
+                    ${window.tempSchedule.map((s, i) => `
+                        <div class="badge" style="background:var(--surface); border:1px solid var(--primary); padding:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+                            <span>${s.date}: ${s.startTime} - ${s.endTime}</span>
+                            <i class="fas fa-times" style="color:var(--danger); cursor:pointer;" onclick="removeSlot(${i})"></i>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
 
@@ -785,7 +804,7 @@ window.updateAvailability = async function (e) {
     const fee = document.getElementById('doc-fee').value;
 
     try {
-        const res = await fetch('http://localhost:8080/api/doctors/profile', {
+        const res = await fetch(`${API_BASE}/doctors/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
