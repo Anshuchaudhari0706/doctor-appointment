@@ -135,7 +135,7 @@ async function payForAppointment(id) {
 
         // 2. Open Razorpay Checkout
         const options = {
-            "key": "rzp_test_z4U1Z5Z5Z5Z5Z5", // Replace with your Test Key ID from Dashboard
+            "key": "rzp_test_SAPPgmQU8nb6sL", // User's Test Key ID
             "amount": order.amount,
             "currency": "INR",
             "name": "MediCare Hospital",
