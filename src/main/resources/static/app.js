@@ -343,7 +343,7 @@ async function register(e) {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role: state.selectedRole || 'patient' })
+            body: JSON.stringify({ name, email, password, role: 'patient' })
         });
 
         if (!res.ok) {
@@ -553,14 +553,10 @@ const RegisterView = () => `
         <div class="auth-card">
             <div class="auth-header">
                 <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Join our medical community</p>
+                <p class="auth-subtitle">Join our medical community as a Patient</p>
             </div>
 
-            <div class="role-switcher">
-                <div class="role-btn ${state.selectedRole === 'patient' ? 'active' : ''}" onclick="setRole('patient')">Patient</div>
-                <div class="role-btn ${state.selectedRole === 'doctor' ? 'active' : ''}" onclick="setRole('doctor')">Doctor</div>
-                <div class="role-btn ${state.selectedRole === 'admin' ? 'active' : ''}" onclick="setRole('admin')">Admin</div>
-            </div>
+            <!-- Role switcher removed: Public registration is Patient only -->
 
             <form onsubmit="register(event)">
                 <div class="form-group">
