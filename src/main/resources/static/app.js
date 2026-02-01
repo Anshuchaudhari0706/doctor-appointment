@@ -722,6 +722,7 @@ function renderDoctorTabs() {
         case 'dashboard': return DoctorDashboardHome();
         case 'my-schedule': return DoctorSchedule(); // Specific to Doc
         case 'appointments': return DoctorAppointments();
+        case 'calendar': return TabCalendar();
         case 'patients': return DoctorPatients();
         case 'profile': return TabDoctorProfile(); // Use your existing profile form
         default: return DoctorDashboardHome();
@@ -751,18 +752,6 @@ const DoctorDashboardHome = () => {
     const pendingToday = todayApts.filter(a => a.status === 'PENDING' || a.status === 'ACCEPTED' || a.status === 'CONFIRMED').length;
 
     return `
-    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Dr. ${state.user.name || 'Doctor'} 👋</h1>
-            <p class="text-muted">Have a great working day!</p>
-        </div>
-        <div style="text-align: right;">
-            <div class="avatar" style="width:50px; height:50px; background:var(--accent); color:white; font-size:1.2rem; display:flex; align-items:center; justify-content:center; border-radius:50%;">
-                ${state.user.name ? state.user.name.substring(0, 2).toUpperCase() : 'DR'}
-            </div>
-        </div>
-    </div>
-
     <div class="grid-cols-3 mb-4">
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--accent);background:rgba(114,9,183,0.1);"><i class="fas fa-user-injured"></i></div>
