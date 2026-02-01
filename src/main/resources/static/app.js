@@ -1228,12 +1228,11 @@ const TabReports = () => `
                         <div style="font-weight:600;">${rep.title}</div>
                         <div style="font-size:0.85rem;color:var(--text-secondary);">${rep.date} • ${rep.doctorName}</div>
                     </div>
-                     </div>
-                     ${rep.fileUrl && rep.fileUrl !== '#' ?
-        `<a href="${rep.fileUrl}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; align-items:center; gap:0.5rem;">
+                    ${rep.fileUrl && rep.fileUrl !== '#' ?
+        `<a href="${rep.fileUrl}" target="_blank" class="btn btn-secondary" style="text-decoration:none; display:flex; align-items:center; gap:0.5rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
                             <i class="fas fa-download"></i> Download
                         </a>` :
-        `<button class="btn btn-ghost btn-sm" disabled><i class="fas fa-ban"></i> No File</button>`
+        `<button class="btn btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" disabled><i class="fas fa-ban"></i> No File</button>`
     }
                   </div>
             `).join('')}
