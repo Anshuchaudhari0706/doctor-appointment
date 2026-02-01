@@ -339,19 +339,18 @@ async function register(e) {
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
 
-    // Check for Doctor Registration
-    const isDoctor = document.getElementById('reg-is-doctor')?.checked;
-    let role = 'patient';
+    // Check for Doctor Registration based on Role State
+    let role = state.selectedRole || 'patient'; // Default to patient
 
-    if (isDoctor) {
-        const code = document.getElementById('reg-doc-code').value;
+    if (role === 'doctor') {
+        const codeElement = document.getElementById('reg-doc-code');
+        const code = codeElement ? codeElement.value : '';
         if (code !== 'DOC-2024') { // Secret Code Validation
             alert("Invalid Doctor Access Code! Please contact Admin.");
             btn.innerText = originalText;
             btn.disabled = false;
             return;
         }
-        role = 'doctor';
     }
 
     try {
@@ -529,7 +528,9 @@ const LoginView = () => `
             </form>
 
             <div class="mt-4 text-muted text-sm" style="display:flex; justify-content:space-between;">
-                <span>Don't have an account? <a href="#" style="color: var(--primary)" onclick="navigate('register')">Register</a></span>
+                ${state.selectedRole !== 'admin' ? `
+                    <span>Don't have an account? <a href="#" style="color: var(--primary)" onclick="navigate('register')">Register</a></span>
+                ` : '<span></span>'}
                 <a href="#" style="color: var(--text-secondary)" onclick="navigate('forgot-password')">Forgot Password?</a>
             </div>
         </div>
@@ -568,13 +569,8 @@ const RegisterView = () => `
         <div class="auth-card">
             <div class="auth-header">
                 <h1 class="auth-title">Create Account</h1>
-            <div class="auth-header">
-                <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Join our medical community</p>
+                <p class="auth-subtitle">Join as a ${state.selectedRole === 'doctor' ? 'Doctor' : 'Patient'}</p>
             </div>
-            </div>
-
-            <!-- Role switcher removed: Public registration is Patient only -->
 
             <form onsubmit="register(event)">
                 <div class="form-group">
@@ -590,16 +586,13 @@ const RegisterView = () => `
                     <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
                 </div>
 
-                <div class="form-group" style="display:flex; align-items:center; gap:0.5rem; margin-top:1rem;">
-                    <input type="checkbox" id="reg-is-doctor" onchange="document.getElementById('doc-code-group').style.display = this.checked ? 'block' : 'none'">
-                    <label for="reg-is-doctor" style="cursor:pointer; user-select:none;">I am a Doctor</label>
-                </div>
-
-                <div class="form-group fade-in" id="doc-code-group" style="display:none; background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; border:1px dashed var(--accent);">
+                ${state.selectedRole === 'doctor' ? `
+                <div class="form-group fade-in" id="doc-code-group" style="background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; border:1px dashed var(--accent);">
                     <label class="form-label" style="color:var(--accent);">Doctor Access Code</label>
-                    <input type="text" id="reg-doc-code" class="form-input" placeholder="Enter Registration Code">
+                    <input type="text" id="reg-doc-code" class="form-input" placeholder="Enter Registration Code" required>
                     <small class="text-muted" style="font-size:0.75rem;">Provided by Hospital Administrator</small>
                 </div>
+                ` : ''}
 
                 <button type="submit" class="btn btn-primary" style="width: 100%">Register</button>
             </form>
