@@ -43,6 +43,10 @@ function setTab(tab) {
         fetchDoctors();
         fetchReports();
     }
+    if (tab === 'payment') {
+        fetchAppointments();
+        fetchDoctors();
+    }
     if (tab === 'book-new') fetchDoctors();
     if (tab === 'bookings') fetchAppointments();
     if (tab === 'appointments' && state.selectedRole === 'doctor') fetchDoctorAppointments();
@@ -105,7 +109,12 @@ async function updateAppointmentStatus(id, status) {
 }
 
 async function payForAppointment(id) {
-    const amount = 500; // Fixed amount for now
+    const appointment = state.appointments.find(a => a.id === id);
+    if (!appointment) return alert("Appointment not found!");
+
+    // Find doctor to get fee
+    const doctor = state.doctors.find(d => d.id === appointment.doctorId);
+    const amount = doctor && doctor.consultationFee ? doctor.consultationFee : 500;
 
     const paymentChoice = prompt(`Total Amount: Rs. ${amount}\n\nSelect Payment Method:\n1. Online (UPI / Card)\n2. Cash`, "1");
     if (!paymentChoice) return;
@@ -1298,16 +1307,19 @@ const TabPayment = () => {
             </div>
             ${pendingPayments.length === 0 ? '<p class="text-muted text-center py-4">No pending payments.</p>' : ''}
             <div style="display:flex;flex-direction:column;gap:1rem;">
-                ${pendingPayments.map(apt => `
+                ${pendingPayments.map(apt => {
+        const doctor = state.doctors.find(d => d.id === apt.doctorId);
+        const fee = doctor && doctor.consultationFee ? doctor.consultationFee : 500;
+        return `
                     <div style="padding:1rem; border:1px solid var(--border); border-radius:8px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
                             <span style="font-weight:600;">${apt.doctorName}</span>
-                            <span style="font-weight:700;">Rs. 500</span>
+                            <span style="font-weight:700;">Rs. ${fee}</span>
                         </div>
                         <div class="text-sm text-muted mb-2">${apt.type || 'Consultation'} • ${apt.date}</div>
                         <button class="btn btn-primary btn-sm" style="width:100%" onclick="payForAppointment('${apt.id}')">Pay Now</button>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
         </div>
 
@@ -1319,14 +1331,17 @@ const TabPayment = () => {
                 </thead>
                 <tbody>
                     ${history.length === 0 ? '<tr><td colspan="4" class="text-center text-muted">No payment history.</td></tr>' : ''}
-                    ${history.map(apt => `
+                    ${history.map(apt => {
+            const doctor = state.doctors.find(d => d.id === apt.doctorId);
+            const fee = doctor && doctor.consultationFee ? doctor.consultationFee : 500;
+            return `
                         <tr>
                             <td>${apt.date}</td>
                             <td>${apt.doctorName}</td>
-                            <td>Rs. 500</td>
+                            <td>Rs. ${fee}</td>
                             <td><span style="color:var(--success)">Paid</span></td>
                         </tr>
-                    `).join('')}
+                    `}).join('')}
                 </tbody>
             </table>
         </div>

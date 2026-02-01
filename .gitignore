@@ -1,0 +1,8 @@
+target/
+run_log.txt
+.vscode/
+*.class
+*.log
+.DS_Store
+tempCodeRunnerFile.xml
+tempCodeRunnerFile.js
