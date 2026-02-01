@@ -470,6 +470,7 @@ const DoctorNavbar = () => `
         </div>
         <div class="nav-links">
             ${navItem('dashboard', 'fas fa-th-large', 'Dashboard')}
+            ${navItem('calendar', 'fas fa-calendar-alt', 'Calendar')}
             ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'My Patients')}
@@ -1383,10 +1384,12 @@ const TabCalendar = () => {
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"];
 
+    const isDoctor = state.user && state.user.role === 'doctor';
+
     return `
     <div class="card">
         <div class="card-header">
-            <div class="card-title">My Health Calendar</div>
+            <div class="card-title">${isDoctor ? 'My Appointments Calendar' : 'My Health Calendar'}</div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
                 <button class="btn btn-ghost btn-sm" onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
                 <span style="font-weight:600;min-width:120px;text-align:center;">${monthNames[month]} ${year}</span>
@@ -1417,8 +1420,8 @@ const TabCalendar = () => {
                     <div style="font-weight:600;font-size:0.9rem;${isToday ? 'color:var(--primary);' : ''}">${day}</div>
                     
                     ${dayApts.map(apt => `
-                        <div style="font-size:0.7rem;background:var(--success);color:black;padding:2px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;" title="${apt.time} - ${apt.doctorName}">
-                            ${apt.time}
+                        <div style="font-size:0.7rem;background:${isDoctor ? 'var(--accent)' : 'var(--success)'};color:white;padding:2px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;" title="${apt.time} - ${isDoctor ? apt.patientName : apt.doctorName}">
+                            ${apt.time} ${isDoctor ? apt.patientName : apt.doctorName || 'Doctor'}
                         </div>
                     `).join('')}
                 </div>
