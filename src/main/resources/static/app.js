@@ -339,11 +339,26 @@ async function register(e) {
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
 
+    // Check for Doctor Registration
+    const isDoctor = document.getElementById('reg-is-doctor')?.checked;
+    let role = 'patient';
+
+    if (isDoctor) {
+        const code = document.getElementById('reg-doc-code').value;
+        if (code !== 'DOC-2024') { // Secret Code Validation
+            alert("Invalid Doctor Access Code! Please contact Admin.");
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return;
+        }
+        role = 'doctor';
+    }
+
     try {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role: 'patient' })
+            body: JSON.stringify({ name, email, password, role: role })
         });
 
         if (!res.ok) {
@@ -553,7 +568,10 @@ const RegisterView = () => `
         <div class="auth-card">
             <div class="auth-header">
                 <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Join our medical community as a Patient</p>
+            <div class="auth-header">
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Join our medical community</p>
+            </div>
             </div>
 
             <!-- Role switcher removed: Public registration is Patient only -->
@@ -571,6 +589,18 @@ const RegisterView = () => `
                     <label class="form-label">Password</label>
                     <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
                 </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:0.5rem; margin-top:1rem;">
+                    <input type="checkbox" id="reg-is-doctor" onchange="document.getElementById('doc-code-group').style.display = this.checked ? 'block' : 'none'">
+                    <label for="reg-is-doctor" style="cursor:pointer; user-select:none;">I am a Doctor</label>
+                </div>
+
+                <div class="form-group fade-in" id="doc-code-group" style="display:none; background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; border:1px dashed var(--accent);">
+                    <label class="form-label" style="color:var(--accent);">Doctor Access Code</label>
+                    <input type="text" id="reg-doc-code" class="form-input" placeholder="Enter Registration Code">
+                    <small class="text-muted" style="font-size:0.75rem;">Provided by Hospital Administrator</small>
+                </div>
+
                 <button type="submit" class="btn btn-primary" style="width: 100%">Register</button>
             </form>
 
