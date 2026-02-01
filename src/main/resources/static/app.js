@@ -65,7 +65,8 @@ function setTab(tab) {
         else fetchAppointments(); // Admin or Patient?
     }
     if (tab === 'reports') fetchReports();
-    if (tab === 'profile') fetchPatientProfile();
+    if (tab === 'nearby') fetchDoctors();
+    if (tab === 'profile') fetchPatientProfile(); // Pre-fill profile
     if (tab === 'my-schedule') fetchDoctorProfile();
 
     render();
@@ -445,6 +446,7 @@ const PatientNavbar = () => `
             ${navItem('profile', 'fas fa-user', 'Profile')}
             ${navItem('reports', 'fas fa-file-medical', 'Medical Reports')}
             ${navItem('bookings', 'fas fa-calendar-check', 'My Bookings')}
+            ${navItem('nearby', 'fas fa-map-marker-alt', 'Nearby Hospitals')}
             ${navItem('book-new', 'fas fa-plus-circle', 'Book Appointment')}
             ${navItem('calendar', 'fas fa-calendar-alt', 'Calendar')}
             ${navItem('payment', 'fas fa-credit-card', 'Payments')}
@@ -691,6 +693,14 @@ const AdminLayout = () => `
 `;
 
 // Tab Routers
+const TabPatientProfile = () => `
+    <div class="card">
+        <h3>My Profile</h3>
+        <p>Manage your personal information.</p>
+        <!-- Form here -->
+    </div>
+`;
+
 function renderPatientTabs() {
     switch (state.activeTab) {
         case 'dashboard': return TabDashboard();
@@ -702,6 +712,7 @@ function renderPatientTabs() {
         case 'payment': return TabPayment();
         case 'support': return TabSupport();
         case 'settings': return TabSettings();
+        case 'nearby': return TabNearbyHospitals();
         default: return TabDashboard();
     }
 }
@@ -794,9 +805,36 @@ const DoctorSchedule = () => `
                 <label class="form-label">Specialization</label>
                 <input type="text" id="doc-spec" class="form-input" placeholder="e.g. Cardiologist" value="${state.doctorProfile?.specialization || ''}" required>
             </div>
-             <div class="form-group">
+            <div class="form-group">
                 <label class="form-label">Consultation Fee ($)</label>
                 <input type="number" id="doc-fee" class="form-input" placeholder="100" value="${state.doctorProfile?.consultationFee || ''}" required>
+            </div>
+            
+            <div class="card bg-surface p-4 mb-4" style="border:1px solid var(--border);">
+                <h4 class="mb-3">Hospital & Contact Details</h4>
+                <div class="grid-cols-2">
+                    <div>
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" id="doc-phone" class="form-input" placeholder="+91 9999999999" value="${state.doctorProfile?.phone || ''}">
+                    </div>
+                    <div>
+                        <label class="form-label">Hospital Name</label>
+                        <input type="text" id="doc-hospital" class="form-input" placeholder="City General Hospital" value="${state.doctorProfile?.hospitalName || ''}">
+                    </div>
+                </div>
+                <div class="form-group mt-2">
+                    <label class="form-label">Hospital Address</label>
+                    <input type="text" id="doc-address" class="form-input" placeholder="123 Street, City" value="${state.doctorProfile?.hospitalAddress || ''}">
+                </div>
+                <div class="mt-2">
+                    <label class="form-label">Location Coordinates</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="doc-lat" class="form-input" placeholder="Latitude" value="${state.doctorProfile?.latitude || ''}" readonly>
+                        <input type="text" id="doc-long" class="form-input" placeholder="Longitude" value="${state.doctorProfile?.longitude || ''}" readonly>
+                        <button type="button" class="btn btn-secondary" onclick="getLocation()"><i class="fas fa-map-marker-alt"></i> Get Current Location</button>
+                    </div>
+                    <p class="text-sm text-muted mt-1">Click to auto-detect your hospital location.</p>
+                </div>
             </div>
             
             <div class="form-group">
@@ -892,8 +930,14 @@ window.updateAvailability = async function (e) {
     const specialization = document.getElementById('doc-spec').value;
     const fee = document.getElementById('doc-fee').value;
 
+    const phone = document.getElementById('doc-phone').value;
+    const hospitalName = document.getElementById('doc-hospital').value;
+    const hospitalAddress = document.getElementById('doc-address').value;
+    const latitude = document.getElementById('doc-lat').value;
+    const longitude = document.getElementById('doc-long').value;
+
     try {
-        const res = await fetch(`${API_BASE} /doctors/profile`, {
+        const res = await fetch(`${API_BASE}/doctors/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -901,19 +945,132 @@ window.updateAvailability = async function (e) {
                 name: state.user.name,
                 specialization: specialization,
                 consultationFee: fee,
-                schedule: window.tempSchedule // Send the list of Availability objects
+                phone, hospitalName, hospitalAddress, latitude, longitude,
+                schedule: window.tempSchedule
             })
         });
         const data = await res.json();
         alert('Profile Updated Successfully!');
+        // Update local state
+        state.doctorProfile = data;
     } catch (err) {
         console.error(err);
         alert('Failed to update profile');
     }
 };
 
+window.getLocation = function () {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                document.getElementById('doc-lat').value = position.coords.latitude;
+                document.getElementById('doc-long').value = position.coords.longitude;
+                alert("Location Detected: " + position.coords.latitude + ", " + position.coords.longitude);
+            },
+            (error) => {
+                alert("Error getting location: " + error.message);
+            }
+        );
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
+
+const TabNearbyHospitals = () => `
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Nearby Hospitals (Within 500m)</div>
+            <button class="btn btn-primary" onclick="findNearbyHospitals()"><i class="fas fa-search-location"></i> Find Near Me</button>
+        </div>
+        <div id="nearby-results" class="mt-4">
+            <p class="text-muted text-center" style="padding:2rem;">Click "Find Near Me" to locate hospitals close to you.</p>
+        </div>
+    </div>
+`;
+
+window.findNearbyHospitals = function () {
+    const resultsDiv = document.getElementById('nearby-results');
+    resultsDiv.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Locating...</p>';
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLat = position.coords.latitude;
+                const userLong = position.coords.longitude;
+
+                // Filter Doctors
+                // Logic: Distance < 0.5 km (500 meters)
+                const nearby = state.doctors.filter(doc => {
+                    if (!doc.latitude || !doc.longitude) return false;
+                    const dist = calculateDistance(userLat, userLong, doc.latitude, doc.longitude);
+                    doc.distanceObj = dist; // Store for display
+                    return dist < 0.5; // less than 0.5 km
+                });
+
+                if (nearby.length === 0) {
+                    resultsDiv.innerHTML = `
+                        <div style="text-align:center; padding:2rem;">
+                            <i class="fas fa-map-marked-alt" style="font-size:2rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+                            <p>No hospitals found within 500 meters.</p>
+                            <p class="text-sm text-muted">Try asking doctors to update their location in their profile.</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="display:flex; flex-direction:column; gap:1rem;">
+                            ${nearby.map(doc => `
+                                <div style="display:flex; gap:1rem; padding:1rem; background:var(--surface); border:1px solid var(--primary); border-radius:12px;">
+                                    <div style="width:60px; height:60px; background:var(--primary); color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                        <i class="fas fa-hospital"></i>
+                                    </div>
+                                    <div style="flex:1;">
+                                        <h4 style="margin:0;">${doc.hospitalName || 'Unnamed Clinic'}</h4>
+                                        <div style="font-size:0.9rem; margin-bottom:0.25rem;">${doc.hospitalAddress || 'Address not listed'}</div>
+                                        <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--text-secondary);">
+                                            <span><strong>Dr. ${doc.name}</strong> (${doc.specialization})</span>
+                                            <span>•</span>
+                                            <span>${(doc.distanceObj * 1000).toFixed(0)}m away</span>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:end;">
+                                        <a href="tel:${doc.phone}" class="btn btn-secondary btn-sm"><i class="fas fa-phone"></i> Call</a>
+                                        <a href="https://www.google.com/maps/search/?api=1&query=${doc.latitude},${doc.longitude}" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-directions"></i> Map</a>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            },
+            (error) => {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}. Please enable location access.</div>`;
+            }
+        );
+    } else {
+        alert("Geolocation is not supported.");
+    }
+}
+
+// Haversine Formula for distance in km
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return d;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180)
+}
+
 const DoctorAppointments = () => `
-    < div class="card" >
+    <div class="card">
         <div class="card-header">
             <div class="card-title">My Appointments</div>
             <button class="btn btn-secondary btn-sm" onclick="fetchDoctorAppointments()"><i class="fas fa-sync"></i> Refresh</button>
@@ -1338,7 +1495,16 @@ const TabBookNew = () => `
             <input type="text" class="form-input" placeholder="Search for doctors, specialities..." oninput="/* TODO filter logic */">
         </div>
         ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
-        <div class="grid-cols-2 mt-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Book New Appointment</div>
+            <button class="btn btn-secondary btn-sm" onclick="fetchDoctors()"><i class="fas fa-sync"></i> Refresh Doctors</button>
+        </div>
+        <div class="form-group mt-4">
+            <input type="text" class="form-input" placeholder="Search for doctors, specialities..." oninput="/* TODO filter logic */">
+        </div>
+        ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
+        <div class="grid-cols-2 mt-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
              ${state.doctors.map(doc => `
                 <div style="padding:1.5rem;border:1px solid var(--border);border-radius:16px;text-align:center;">
                     <div class="avatar" style="margin:0 auto 1rem auto;width:60px;height:60px;font-size:1.5rem;background:var(--accent);">${doc.name ? doc.name.substring(0, 2).toUpperCase() : 'DR'}</div>

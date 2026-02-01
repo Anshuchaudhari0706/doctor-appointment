@@ -17,6 +17,13 @@ public class DoctorProfile {
     private int experienceYears;
     private double consultationFee;
 
+    // New fields for Location and Contact
+    private String phone;
+    private String hospitalName;
+    private String hospitalAddress;
+    private double latitude;
+    private double longitude;
+
     public DoctorProfile() {
     }
 
@@ -81,5 +88,45 @@ public class DoctorProfile {
 
     public void setConsultationFee(double consultationFee) {
         this.consultationFee = consultationFee;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getHospitalName() {
+        return hospitalName;
+    }
+
+    public void setHospitalName(String hospitalName) {
+        this.hospitalName = hospitalName;
+    }
+
+    public String getHospitalAddress() {
+        return hospitalAddress;
+    }
+
+    public void setHospitalAddress(String hospitalAddress) {
+        this.hospitalAddress = hospitalAddress;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
     }
 }
