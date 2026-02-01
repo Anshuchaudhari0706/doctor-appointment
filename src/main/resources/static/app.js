@@ -38,21 +38,36 @@ function navigate(route) {
 
 function setTab(tab) {
     state.activeTab = tab;
+    const role = state.user ? state.user.role : state.selectedRole;
+
     if (tab === 'dashboard') {
-        fetchAppointments();
-        fetchDoctors();
-        fetchReports();
+        if (role === 'doctor') {
+            fetchDoctorAppointments();
+            // Also fetch profile to get name/stats if needed, though they are likely in user object
+        } else if (role === 'admin') {
+            // Admin data usually handled by specific sub-tabs or dashboard components
+        } else {
+            // Patient
+            fetchAppointments();
+            fetchDoctors();
+            fetchReports();
+        }
     }
+
     if (tab === 'payment') {
         fetchAppointments();
         fetchDoctors();
     }
     if (tab === 'book-new') fetchDoctors();
     if (tab === 'bookings') fetchAppointments();
-    if (tab === 'appointments' && state.selectedRole === 'doctor') fetchDoctorAppointments();
+    if (tab === 'appointments') {
+        if (role === 'doctor') fetchDoctorAppointments();
+        else fetchAppointments(); // Admin or Patient?
+    }
     if (tab === 'reports') fetchReports();
-    if (tab === 'profile') fetchPatientProfile(); // Pre-fill profile
+    if (tab === 'profile') fetchPatientProfile();
     if (tab === 'my-schedule') fetchDoctorProfile();
+
     render();
 }
 
@@ -317,7 +332,8 @@ async function login(e) {
                 role: data.role,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
-            navigate('dashboard');
+            state.route = 'dashboard';
+            setTab('dashboard');
         } else {
             console.warn("Login failed response:", data);
             alert(data.message || 'Login failed. Please check your credentials.');
@@ -711,38 +727,63 @@ function renderAdminTabs() {
 }
 
 // --- DOCTOR VIEWS ---
-const DoctorDashboardHome = () => `
+const DoctorDashboardHome = () => {
+    // Calculate Stats for Today
+    const todayStr = new Date().toISOString().split('T')[0];
+    const myApts = state.appointments || [];
+    // Filter for appointments that match today's date
+    const todayApts = myApts.filter(a => a.date === todayStr);
+
+    const patientsToday = todayApts.length;
+    const completedToday = todayApts.filter(a => a.status === 'COMPLETED').length;
+    const pendingToday = todayApts.filter(a => a.status === 'PENDING' || a.status === 'ACCEPTED' || a.status === 'CONFIRMED').length;
+
+    return `
+    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Dr. ${state.user.name || 'Doctor'} 👋</h1>
+            <p class="text-muted">Have a great working day!</p>
+        </div>
+        <div style="text-align: right;">
+            <div class="avatar" style="width:50px; height:50px; background:var(--accent); color:white; font-size:1.2rem; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                ${state.user.name ? state.user.name.substring(0, 2).toUpperCase() : 'DR'}
+            </div>
+        </div>
+    </div>
+
     <div class="grid-cols-3 mb-4">
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--accent);background:rgba(114,9,183,0.1);"><i class="fas fa-user-injured"></i></div>
             <div class="stat-info">
-                <h3>08</h3>
+                <h3>${patientsToday}</h3>
                 <p class="text-muted">Patients Today</p>
             </div>
         </div>
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--success);background:rgba(16,185,129,0.1);"><i class="fas fa-check-circle"></i></div>
             <div class="stat-info">
-                <h3>05</h3>
-                <p class="text-muted">Completed</p>
+                <h3>${completedToday}</h3>
+                <p class="text-muted">Completed Today</p>
             </div>
         </div>
         <div class="card stat-card">
             <div class="stat-icon" style="color:#f59e0b;background:rgba(245,158,11,0.1);"><i class="fas fa-clock"></i></div>
             <div class="stat-info">
-                <h3>03</h3>
-                <p class="text-muted">Pending</p>
+                <h3>${pendingToday}</h3>
+                <p class="text-muted">Pending Today</p>
             </div>
         </div>
     </div>
+
     <div class="card">
         <h3>Quick Actions</h3>
         <div style="display:flex; gap:1rem; margin-top:1rem;">
             <button class="btn btn-primary" onclick="setTab('my-schedule')">Update Availability</button>
-            <button class="btn btn-secondary" onclick="setTab('appointments')">View Calendar</button>
+            <button class="btn btn-secondary" onclick="setTab('appointments')">View Appointments</button>
         </div>
     </div>
-`;
+    `;
+};
 
 const DoctorSchedule = () => `
     <div class="card" style="max-width:800px; margin:0 auto;">
@@ -805,8 +846,8 @@ const DoctorSchedule = () => `
 
             <button class="btn btn-primary" style="width:100%">Save Availability</button>
         </form>
-    </div>
-`;
+    </div >
+    `;
 
 // Temp store for slots
 window.tempSchedule = [];
@@ -826,7 +867,7 @@ window.addSlot = function () {
 window.renderSlots = function () {
     const list = document.getElementById('schedule-list');
     list.innerHTML = window.tempSchedule.map((s, i) => `
-        <div style="display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border); animation: fadeIn 0.3s ease-in-out;">
+    < div style = "display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border); animation: fadeIn 0.3s ease-in-out;" >
             <div style="flex:1;">
                 <h4 style="margin-bottom:0.25rem;">${s.date}</h4>
                 <div style="font-size:0.85rem; color:var(--text-secondary);">
@@ -836,7 +877,7 @@ window.renderSlots = function () {
             <button type="button" class="btn btn-secondary btn-sm" onclick="removeSlot(${i})" style="color:var(--danger); border-color:var(--danger);">
                 <i class="fas fa-trash"></i> Remove
             </button>
-        </div>
+        </div >
     `).join('');
 }
 
@@ -851,7 +892,7 @@ window.updateAvailability = async function (e) {
     const fee = document.getElementById('doc-fee').value;
 
     try {
-        const res = await fetch(`${API_BASE}/doctors/profile`, {
+        const res = await fetch(`${API_BASE} /doctors/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -871,14 +912,14 @@ window.updateAvailability = async function (e) {
 };
 
 const DoctorAppointments = () => `
-    <div class="card">
+    < div class="card" >
         <div class="card-header">
             <div class="card-title">My Appointments</div>
             <button class="btn btn-secondary btn-sm" onclick="fetchDoctorAppointments()"><i class="fas fa-sync"></i> Refresh</button>
         </div>
         ${state.appointments.length === 0 ? '<p class="text-muted">No appointments found.</p>' : ''}
-        <div style="display:flex;flex-direction:column;gap:1rem;">
-             ${state.appointments.map(apt => `
+<div style="display:flex;flex-direction:column;gap:1rem;">
+    ${state.appointments.map(apt => `
                 <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:rgba(0,0,0,0.2);border-radius:12px;">
                     <div style="flex:1;">
                         <h4 style="margin-bottom:0.25rem;">${apt.patientName} (${apt.type})</h4>
@@ -906,12 +947,12 @@ const DoctorAppointments = () => `
                     </div>
                 </div>
             `).join('')}
-        </div>
-    </div>
-`;
+</div>
+    </div >
+    `;
 
 const DoctorPatients = () => `
-    <div class="grid-cols-2">
+    < div class="grid-cols-2" >
         <div class="card">
              <div class="card-header"><div class="card-title">Upload Medical Report</div></div>
              <div id="report-success-box" style="display:none; margin-bottom:1rem;"></div>
@@ -944,8 +985,8 @@ const DoctorPatients = () => `
                 <p class="text-muted">No recent history.</p>
              </div>
         </div>
-    </div>
-`;
+    </div >
+    `;
 
 async function submitMedicalReport(e) {
     e.preventDefault();
