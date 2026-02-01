@@ -913,12 +913,9 @@ const DoctorPatients = () => `
                      <label class="form-label">Date</label>
                      <input type="date" id="rep-date" class="form-input" required>
                 </div>
-                 <div class="form-group">
-                     <label class="form-label">File URL (Mock)</label>
-                     <div style="display:flex;gap:0.5rem;">
-                        <input type="text" id="rep-file" class="form-input" placeholder="http://example.com/report.pdf" value="#">
-                        <button type="button" class="btn btn-secondary" onclick="alert('File upload simulation')"><i class="fas fa-upload"></i></button>
-                     </div>
+                <div class="form-group">
+                     <label class="form-label">Upload Report File (PDF/Image)</label>
+                     <input type="file" id="rep-file" class="form-input" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
                 </div>
                 <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-plus-circle"></i> Add Report</button>
              </form>
@@ -940,7 +937,43 @@ async function submitMedicalReport(e) {
     const email = document.getElementById('rep-email').value;
     const title = document.getElementById('rep-title').value;
     const date = document.getElementById('rep-date').value;
-    const fileUrl = document.getElementById('rep-file').value;
+    const fileInput = document.getElementById('rep-file');
+
+    let fileUrl = '#';
+
+    // 1. Upload File if present
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const uploadBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerText = 'Uploading...';
+            uploadBtn.disabled = true;
+
+            const uploadRes = await fetch(`${API_BASE}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadRes.ok) {
+                const err = await uploadRes.json();
+                throw new Error(err.error || 'Upload failed');
+            }
+
+            const uploadData = await uploadRes.json();
+            fileUrl = uploadData.url;
+
+            uploadBtn.innerHTML = originalText;
+            uploadBtn.disabled = false;
+        } catch (uploadErr) {
+            console.error("Upload Error:", uploadErr);
+            alert("Failed to upload file: " + uploadErr.message);
+            return;
+        }
+    }
 
     // Validate doctor
     if (!state.user || state.user.role !== 'doctor') return alert('Unauthorized');
