@@ -345,7 +345,9 @@ async function register(e) {
     if (role === 'doctor') {
         const codeElement = document.getElementById('reg-doc-code');
         const code = codeElement ? codeElement.value : '';
-        if (code !== 'DOC-2024') { // Secret Code Validation
+        const validCode = state.doctorAccessCode || 'DOC-2024';
+
+        if (code !== validCode) { // Secret Code Validation
             alert("Invalid Doctor Access Code! Please contact Admin.");
             btn.innerText = originalText;
             btn.disabled = false;
@@ -703,6 +705,7 @@ function renderAdminTabs() {
         case 'dashboard': return AdminDashboardHome();
         case 'doctors': return AdminManageDoctors();
         case 'patients': return AdminManagePatients();
+        case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
 }
@@ -1584,6 +1587,40 @@ const AdminManagePatients = () => `
         <p>List of all registered patients.</p>
     </div>
 `;
+
+const AdminSystemSettings = () => `
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">System Settings</div>
+        </div>
+        
+        <div style="padding:1.5rem; background:rgba(114,9,183,0.05); border-radius:12px; border:1px solid var(--accent);">
+            <h4>Doctor Registration Access Code</h4>
+            <p class="text-muted mb-4">Share this code with doctors to allow them to register themselves.</p>
+            
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <div style="font-size:1.5rem; font-weight:700; letter-spacing:2px; padding:0.5rem 1rem; background:var(--surface); border-radius:8px; border:1px dashed var(--border);">
+                    ${state.doctorAccessCode || 'DOC-2024'}
+                </div>
+                <button class="btn btn-secondary" onclick="generateNewAccessCode()"><i class="fas fa-sync"></i> Generate New Code</button>
+            </div>
+        </div>
+    </div>
+`;
+
+function generateNewAccessCode() {
+    // Generate a random 6-character code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I, O, 1, 0 to avoid confusion
+    let newCode = 'DOC-';
+    for (let i = 0; i < 4; i++) {
+        newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    state.doctorAccessCode = newCode;
+    // In a real app, save this to backend. For now, it stays in session.
+    alert(`New Access Code Generated: ${newCode}\nPlease share this with your doctors.`);
+    render();
+}
 
 async function registerDoctor(e) {
     e.preventDefault();
