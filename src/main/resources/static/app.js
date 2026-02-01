@@ -786,11 +786,18 @@ const DoctorSchedule = () => `
 
             <div class="form-group">
                 <label class="form-label">Planned Schedule</label>
-                <div id="schedule-list" style="display:flex; flex-wrap:wrap; gap:0.5rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:8px; min-height:50px;">
+                <div id="schedule-list" style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
                     ${window.tempSchedule.map((s, i) => `
-                        <div class="badge" style="background:var(--surface); border:1px solid var(--primary); padding:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-                            <span>${s.date}: ${s.startTime} - ${s.endTime}</span>
-                            <i class="fas fa-times" style="color:var(--danger); cursor:pointer;" onclick="removeSlot(${i})"></i>
+                        <div style="display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border);">
+                            <div style="flex:1;">
+                                <h4 style="margin-bottom:0.25rem;">${s.date}</h4>
+                                <div style="font-size:0.85rem; color:var(--text-secondary);">
+                                    <i class="fas fa-clock"></i> ${s.startTime} - ${s.endTime}
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="removeSlot(${i})" style="color:var(--danger); border-color:var(--danger);">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -819,9 +826,16 @@ window.addSlot = function () {
 window.renderSlots = function () {
     const list = document.getElementById('schedule-list');
     list.innerHTML = window.tempSchedule.map((s, i) => `
-        <div class="badge" style="background:var(--surface); border:1px solid var(--primary); padding:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-            <span>${s.date}: ${s.startTime} - ${s.endTime}</span>
-            <i class="fas fa-times" style="color:var(--danger); cursor:pointer;" onclick="removeSlot(${i})"></i>
+        <div style="display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border); animation: fadeIn 0.3s ease-in-out;">
+            <div style="flex:1;">
+                <h4 style="margin-bottom:0.25rem;">${s.date}</h4>
+                <div style="font-size:0.85rem; color:var(--text-secondary);">
+                    <i class="fas fa-clock"></i> ${s.startTime} - ${s.endTime}
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="removeSlot(${i})" style="color:var(--danger); border-color:var(--danger);">
+                <i class="fas fa-trash"></i> Remove
+            </button>
         </div>
     `).join('');
 }
