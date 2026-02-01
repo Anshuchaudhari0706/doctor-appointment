@@ -900,6 +900,7 @@ const DoctorPatients = () => `
     <div class="grid-cols-2">
         <div class="card">
              <div class="card-header"><div class="card-title">Upload Medical Report</div></div>
+             <div id="report-success-box" style="display:none; margin-bottom:1rem;"></div>
              <form onsubmit="submitMedicalReport(event)">
                 <div class="form-group">
                     <label class="form-label">Patient Email</label>
@@ -992,8 +993,31 @@ async function submitMedicalReport(e) {
         });
 
         if (res.ok) {
-            alert('Medical Report Added Successfully! ✅');
+            // Show Success Box
+            const successBox = document.getElementById('report-success-box');
+            if (successBox) {
+                successBox.style.display = 'block';
+                successBox.innerHTML = `
+                    <div style="background:rgba(16, 185, 129, 0.1); border:1px solid var(--success); padding:1rem; border-radius:8px; display:flex; gap:1rem; align-items:center;">
+                        <div style="font-size:2rem; color:var(--success);"><i class="fas fa-check-circle"></i></div>
+                        <div>
+                            <h4 style="margin:0; color:var(--success);">Report Uploaded Successfully!</h4>
+                            <p style="margin:0; font-size:0.9rem; color:var(--text-secondary);">
+                                Sent to ${email}<br>
+                                File: <a href="${fileUrl}" target="_blank" style="text-decoration:underline;">View File</a>
+                            </p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.style.display='none'" style="margin-left:auto; background:none; border:none; color:var(--text-secondary); cursor:pointer;"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+            } else {
+                alert('Medical Report Added Successfully! ✅');
+            }
+
+            // Clear form
+            document.getElementById('rep-email').value = '';
             document.getElementById('rep-title').value = '';
+            document.getElementById('rep-file').value = '';
         } else {
             alert('Failed to add report.');
         }
@@ -1204,8 +1228,14 @@ const TabReports = () => `
                         <div style="font-weight:600;">${rep.title}</div>
                         <div style="font-size:0.85rem;color:var(--text-secondary);">${rep.date} • ${rep.doctorName}</div>
                     </div>
-                    <button class="btn btn-ghost btn-sm" onclick="alert('Download not implemented yet')"><i class="fas fa-download"></i></button>
-                 </div>
+                     </div>
+                     ${rep.fileUrl && rep.fileUrl !== '#' ?
+        `<a href="${rep.fileUrl}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fas fa-download"></i> Download
+                        </a>` :
+        `<button class="btn btn-ghost btn-sm" disabled><i class="fas fa-ban"></i> No File</button>`
+    }
+                  </div>
             `).join('')}
         </div>
     </div>
