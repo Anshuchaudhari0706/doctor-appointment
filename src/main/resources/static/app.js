@@ -1500,26 +1500,58 @@ const AdminManageDoctors = () => `
     <div class="card">
         <div class="card-header">
             <div class="card-title">Manage Doctors</div>
-            <button class="btn btn-primary">Add New Doctor</button>
+            <button class="btn btn-primary" onclick="state.showAddDoctorForm = !state.showAddDoctorForm; render();">
+                ${state.showAddDoctorForm ? 'Close Form' : 'Add New Doctor'}
+            </button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Specialization</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Dr. House</td>
-                    <td>Diagnostics</td>
-                    <td><span class="status-badge status-confirmed">Active</span></td>
-                     <td><button class="btn btn-secondary btn-sm">Edit</button></td>
-                </tr>
-            </tbody>
-        </table>
+
+        ${state.showAddDoctorForm ? `
+        <div class="form-group fade-in" style="background:var(--surface); padding:1.5rem; border-radius:12px; border:1px solid var(--border); margin-bottom:2rem;">
+            <h4>Register New Doctor</h4>
+            <form onsubmit="registerDoctor(event)">
+                <div class="grid-cols-2">
+                    <div>
+                        <label class="form-label">Doctor Name</label>
+                        <input type="text" id="doc-reg-name" class="form-input" placeholder="Dr. Name" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Email</label>
+                        <input type="email" id="doc-reg-email" class="form-input" placeholder="doctor@medicare.com" required>
+                    </div>
+                </div>
+                <div class="form-group mt-2">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="doc-reg-password" class="form-input" placeholder="Create Password" required>
+                </div>
+                <button class="btn btn-primary">Create Doctor Account</button>
+            </form>
+        </div>
+        ` : ''}
+
+        <div style="margin-top:1rem;">
+            <p class="text-muted mb-2">Existing External Doctors (Hardcoded Demo)</p>
+             <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                   <span style="font-weight:600;">Dr. House</span><br>
+                   <span class="text-sm text-muted">Diagnostics • doctor@medicare.com</span>
+                </div>
+                <span class="status-badge status-confirmed">Active</span>
+             </div>
+             
+             <!-- To list DB doctors we would need a fetch call here analogous to state.doctors -->
+             ${state.doctors && state.doctors.length > 0 ? `
+                <p class="text-muted mt-4 mb-2">Registered Doctors</p>
+                ${state.doctors.map(d => `
+                     <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <div>
+                        <span style="font-weight:600;">${d.name}</span><br>
+                        <span class="text-sm text-muted">${d.specialization || 'General'} • ${d.experienceYears || '0'} Exp</span>
+                        </div>
+                        <span class="status-badge status-confirmed">Registered</span>
+                    </div>
+                `).join('')}
+             ` : ''}
+        </div>
     </div>
 `;
 
@@ -1529,6 +1561,34 @@ const AdminManagePatients = () => `
         <p>List of all registered patients.</p>
     </div>
 `;
+
+async function registerDoctor(e) {
+    e.preventDefault();
+    const name = document.getElementById('doc-reg-name').value;
+    const email = document.getElementById('doc-reg-email').value;
+    const password = document.getElementById('doc-reg-password').value;
+
+    try {
+        const res = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password, role: 'doctor' })
+        });
+
+        const data = await res.json();
+        if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
+            alert('Doctor Registered Successfully!');
+            state.showAddDoctorForm = false;
+            fetchDoctors(); // Refresh list if possible
+            render();
+        } else {
+            alert(data.message || 'Failed to register doctor');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Error registering doctor');
+    }
+}
 
 
 // Chat Functions
