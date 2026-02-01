@@ -63,14 +63,20 @@ public class FileController {
     public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            System.out.println("DEBUG: Request to download file: " + fileName);
+            System.out.println("DEBUG: Resolved file path: " + filePath.toAbsolutePath());
+
             Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists()) {
+                System.out.println("DEBUG: File exists, returning content.");
                 return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + resource.getFilename() + "\"").body(resource);
             } else {
+                System.out.println("DEBUG: File NOT found at path.");
                 return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException ex) {
+            System.out.println("DEBUG: Malformed URL Exception: " + ex.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
