@@ -48,8 +48,8 @@ public class FileController {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             // Build the download URI
-            // Point to the controller endpoint /api/upload/{fileName}
-            String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/upload/")
+            // Use static resource path /uploads/
+            String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/uploads/")
                     .path(fileName).toUriString();
 
             return ResponseEntity.ok("{\"url\": \"" + fileDownloadUri + "\"}");
