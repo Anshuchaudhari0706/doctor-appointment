@@ -1,36 +1,21 @@
 
-// Mock Data
-const MOCK_DOCTORS = [
-    { id: 1, name: "Dr. Sarah Johnson", spec: "Cardiologist", available: ["10:00 AM", "11:00 AM", "02:00 PM"] },
-    { id: 2, name: "Dr. Michael Chen", spec: "Dermatologist", available: ["09:00 AM", "01:00 PM", "03:30 PM"] },
-    { id: 3, name: "Dr. Emily Davis", spec: "Pediatrician", available: ["08:30 AM", "12:00 PM", "04:00 PM"] }
-];
 
-const MOCK_APPOINTMENTS = [
-    { id: 101, doctor: "Dr. Sarah Johnson", date: "2023-10-25", time: "10:00 AM", status: "confirmed", type: "Check-up" },
-    { id: 102, doctor: "Dr. Michael Chen", date: "2023-11-02", time: "02:00 PM", status: "pending", type: "Consultation" }
-];
 
-const MOCK_REPORTS = [
-    { id: 1, name: "Blood Test Results", date: "2023-09-15", doctor: "Dr. Smith" },
-    { id: 2, name: "X-ray Report", date: "2023-08-10", doctor: "Dr. Sarah Johnson" }
-];
 
-// State
 const state = {
-    user: null, // { name, role, email }
-    route: 'login', // login, register, dashboard
+    user: null,
+    route: 'login',
     activeTab: 'dashboard',
-    selectedRole: 'patient', // patient, doctor, admin
+    selectedRole: 'patient',
     doctors: [],
     appointments: [],
     reports: []
 };
 
-// DOM Elements
+
 const app = document.getElementById('app');
 
-// Router/Navigation
+
 function navigate(route) {
     state.route = route;
     render();
@@ -43,11 +28,8 @@ function setTab(tab) {
     if (tab === 'dashboard') {
         if (role === 'doctor') {
             fetchDoctorAppointments();
-            // Also fetch profile to get name/stats if needed, though they are likely in user object
         } else if (role === 'admin') {
-            // Admin data usually handled by specific sub-tabs or dashboard components
         } else {
-            // Patient
             fetchAppointments();
             fetchDoctors();
             fetchReports();
@@ -62,11 +44,11 @@ function setTab(tab) {
     if (tab === 'bookings') fetchAppointments();
     if (tab === 'appointments') {
         if (role === 'doctor') fetchDoctorAppointments();
-        else fetchAppointments(); // Admin or Patient?
+        else fetchAppointments();
     }
     if (tab === 'reports') fetchReports();
     if (tab === 'nearby') fetchDoctors();
-    if (tab === 'profile') fetchPatientProfile(); // Pre-fill profile
+    if (tab === 'profile') fetchPatientProfile();
     if (tab === 'my-schedule') fetchDoctorProfile();
 
     render();
@@ -77,13 +59,12 @@ function setRole(role) {
     render();
 }
 
-// Dynamic API_BASE for local vs production
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8080/api'
     : '/api';
 const API_URL = `${API_BASE}/auth`;
 
-// --- DATA FETCHING ---
+
 async function fetchDoctors() {
     try {
         const res = await fetch(`${API_BASE}/doctors`);
@@ -96,7 +77,7 @@ async function fetchDoctors() {
 async function fetchAppointments() {
     if (!state.user) return;
     try {
-        const res = await fetch(`${API_BASE}/appointments/patient/${state.user.email}`); // assuming email is id
+        const res = await fetch(`${API_BASE}/appointments/patient/${state.user.email}`);
         const data = await res.json();
         state.appointments = data;
         render();
@@ -312,10 +293,7 @@ async function bookAppointmentBackend(docId, docName, docEmail) {
 async function login(e) {
     e.preventDefault();
     const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value; // Need to add id="password" to input
-
-    // Simple client-side check for role selection matching (Optional, or just trust backend response)
-    // For this demo, we send credentials to backend and backend tells us the role.
+    const password = document.getElementById('password').value;
 
     try {
         const res = await fetch(`${API_URL}/login`, {
@@ -356,15 +334,14 @@ async function register(e) {
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
 
-    // Check for Doctor Registration based on Role State
-    let role = state.selectedRole || 'patient'; // Default to patient
+    let role = state.selectedRole || 'patient';
 
     if (role === 'doctor') {
         const codeElement = document.getElementById('reg-doc-code');
         const code = codeElement ? codeElement.value : '';
         const validCode = state.doctorAccessCode || 'DOC-2024';
 
-        if (code !== validCode) { // Secret Code Validation
+        if (code !== validCode) {
             alert("Invalid Doctor Access Code! Please contact Admin.");
             btn.innerText = originalText;
             btn.disabled = false;
@@ -432,7 +409,7 @@ function logout() {
     navigate('login');
 }
 
-// Components
+
 const PatientNavbar = () => `
     <div class="sidebar">
         <div class="sidebar-header">
@@ -518,7 +495,7 @@ const navItem = (id, icon, label) => `
     </div>
 `;
 
-// Authentication Views
+
 const LoginView = () => `
     <div class="auth-container fade-in">
         <div class="auth-card">
@@ -625,7 +602,7 @@ const RegisterView = () => `
     </div>
 `;
 
-// Layouts
+
 const PatientLayout = () => `
     <div class="dashboard-layout fade-in">
         ${PatientNavbar()}
@@ -692,7 +669,7 @@ const AdminLayout = () => `
     </div>
 `;
 
-// Tab Routers
+
 const TabPatientProfile = () => `
     <div class="card">
         <h3>My Profile</h3>
@@ -739,12 +716,10 @@ function renderAdminTabs() {
     }
 }
 
-// --- DOCTOR VIEWS ---
+
 const DoctorDashboardHome = () => {
-    // Calculate Stats for Today
     const todayStr = new Date().toISOString().split('T')[0];
     const myApts = state.appointments || [];
-    // Filter for appointments that match today's date
     const todayApts = myApts.filter(a => a.date === todayStr);
 
     const patientsToday = todayApts.length;
@@ -877,7 +852,7 @@ const DoctorSchedule = () => `
     </div >
     `;
 
-// Temp store for slots
+
 window.tempSchedule = [];
 
 window.addSlot = function () {
@@ -1229,7 +1204,7 @@ async function submitMedicalReport(e) {
     }
 }
 
-// --- PASIENT VIEWS ---
+
 const TabDashboard = () => {
     // 1. Calculate Stats
     const upcoming = state.appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'PENDING');
@@ -1239,7 +1214,7 @@ const TabDashboard = () => {
     // 2. Filter for "Upcoming Appointments" Widget (Sort by date if possible, here just taking first 2)
     const upcomingWidgetList = upcoming.slice(0, 2);
 
-    // 3. Doctors Widget
+
     const doctorsWidgetList = state.doctors.slice(0, 3);
 
     return `
@@ -1474,27 +1449,29 @@ const TabBookings = () => `
     </div>
 `;
 
-const TabBookNew = () => `
+const TabBookNew = () => {
+    const query = (state.bookingSearchQuery || '').toLowerCase();
+    const filteredDoctors = state.doctors.filter(doc =>
+        (doc.name && doc.name.toLowerCase().includes(query)) ||
+        (doc.specialization && doc.specialization.toLowerCase().includes(query))
+    );
+
+    return `
     <div class="card">
         <div class="card-header">
             <div class="card-title">Book New Appointment</div>
             <button class="btn btn-secondary btn-sm" onclick="fetchDoctors()"><i class="fas fa-sync"></i> Refresh Doctors</button>
         </div>
         <div class="form-group mt-4">
-            <input type="text" class="form-input" placeholder="Search for doctors, specialities..." oninput="/* TODO filter logic */">
+            <input type="text" id="doctor-search" class="form-input" placeholder="Search for doctors, specialities..." 
+                   value="${state.bookingSearchQuery || ''}" 
+                   oninput="state.bookingSearchQuery = this.value; render();" autofocus>
         </div>
         ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Book New Appointment</div>
-            <button class="btn btn-secondary btn-sm" onclick="fetchDoctors()"><i class="fas fa-sync"></i> Refresh Doctors</button>
-        </div>
-        <div class="form-group mt-4">
-            <input type="text" class="form-input" placeholder="Search for doctors, specialities..." oninput="/* TODO filter logic */">
-        </div>
-        ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
+        ${state.doctors.length > 0 && filteredDoctors.length === 0 ? '<p class="text-muted mt-4 text-center">No doctors match your search.</p>' : ''}
+        
         <div class="grid-cols-2 mt-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-             ${state.doctors.map(doc => `
+             ${filteredDoctors.map(doc => `
                 <div style="padding:1.5rem;border:1px solid var(--border);border-radius:16px;text-align:center;">
                     <div class="avatar" style="margin:0 auto 1rem auto;width:60px;height:60px;font-size:1.5rem;background:var(--accent);">${doc.name ? doc.name.substring(0, 2).toUpperCase() : 'DR'}</div>
                     <h4 class="mb-2">${doc.name}</h4>
@@ -1513,8 +1490,9 @@ const TabBookNew = () => `
         </div>
     </div>
 `;
+};
 
-// Calendar Helper State
+
 if (!state.calendarDate) state.calendarDate = new Date();
 
 window.changeMonth = (offset) => {
@@ -1526,11 +1504,9 @@ const TabCalendar = () => {
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
 
-    // Get first day of month and total days
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // Filter appointments for this month
     const monthApts = state.appointments.filter(a => {
         const d = new Date(a.date);
         return d.getMonth() === month && d.getFullYear() === year && a.status !== 'CANCELLED';
@@ -1709,7 +1685,7 @@ const TabSupport = () => `
 const TabSettings = () => `<div class="card"><h3>Settings</h3><p>App preferences.</p></div>`;
 
 
-// --- DOCTOR VIEWS ---
+
 const TabDoctorProfile = () => `
     <div class="card" style="max-width: 600px; margin: 0 auto;">
         <div class="card-header">
@@ -1738,7 +1714,7 @@ const TabDoctorProfile = () => `
     </div>
 `;
 
-// --- ADMIN VIEWS ---
+
 const AdminDashboardHome = () => `
     <div class="grid-cols-3 mb-4">
         <div class="card stat-card">
