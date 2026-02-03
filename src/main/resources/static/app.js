@@ -79,7 +79,9 @@ async function fetchAppointments() {
     try {
         const res = await fetch(`${API_BASE}/appointments/patient/${state.user.email}`);
         const data = await res.json();
-        state.appointments = data;
+        // Filter out past appointments
+        const today = new Date().toISOString().split('T')[0];
+        state.appointments = data.filter(a => a.date >= today);
         render();
     } catch (e) { console.error("Failed to fetch appointments", e); }
 }
@@ -89,7 +91,9 @@ async function fetchDoctorAppointments() {
     try {
         const res = await fetch(`${API_BASE}/appointments/doctor/${state.user.email}`);
         const data = await res.json();
-        state.appointments = data;
+        // Filter out past appointments
+        const today = new Date().toISOString().split('T')[0];
+        state.appointments = data.filter(a => a.date >= today);
         render();
     } catch (e) { console.error("Failed to fetch doctor appointments", e); }
 }
@@ -770,7 +774,7 @@ const DoctorSchedule = () => `
                 <input type="text" id="doc-spec" class="form-input" placeholder="e.g. Cardiologist" value="${state.doctorProfile?.specialization || ''}" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Consultation Fee ($)</label>
+                <label class="form-label">Consultation Fee (₹)</label>
                 <input type="number" id="doc-fee" class="form-input" placeholder="100" value="${state.doctorProfile?.consultationFee || ''}" required>
             </div>
             
