@@ -573,11 +573,11 @@ const RegisterView = () => `
             <form onsubmit="register(event)">
                 <div class="form-group">
                     <label class="form-label">Full Name</label>
-                    <input type="text" id="reg-name" class="form-input" placeholder="John Doe" required>
+                    <input type="text" id="reg-name" class="form-input" placeholder="Enter your Full Name" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" id="reg-email" class="form-input" placeholder="john@example.com" required>
+                    <input type="email" id="reg-email" class="form-input" placeholder="Enter your Email ID" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
