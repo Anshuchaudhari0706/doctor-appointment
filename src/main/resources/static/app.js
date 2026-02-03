@@ -69,6 +69,10 @@ async function fetchDoctors() {
     try {
         const res = await fetch(`${API_BASE}/doctors`);
         const data = await res.json();
+        const today = new Date().toISOString().split('T')[0];
+        data.forEach(d => {
+            if (d.schedule) d.schedule = d.schedule.filter(s => s.date >= today);
+        });
         state.doctors = data;
         render();
     } catch (e) { console.error("Failed to fetch doctors", e); }
@@ -244,7 +248,8 @@ async function fetchDoctorProfile() {
         const data = await res.json();
         if (data) {
             state.doctorProfile = data;
-            window.tempSchedule = data.schedule || [];
+            const today = new Date().toISOString().split('T')[0];
+            window.tempSchedule = (data.schedule || []).filter(s => s.date >= today);
             render();
         }
     } catch (e) { console.error("Failed to fetch doctor profile", e); }
