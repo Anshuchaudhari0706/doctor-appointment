@@ -58,22 +58,24 @@ public class AdminController {
 
     @GetMapping("/patients")
     public List<Patient> getAllPatients() {
-        // Get all Users with role "patient"
-        List<User> users = userRepository.findByRole("patient");
+        // Get all Users, filter those with patient role (case-insensitive)
+        List<User> allUsers = userRepository.findAll();
         List<Patient> patients = new java.util.ArrayList<>();
 
-        for (User u : users) {
-            Optional<Patient> pOpt = patientRepository.findByEmail(u.getEmail());
-            if (pOpt.isPresent()) {
-                patients.add(pOpt.get());
-            } else {
-                // Create a placeholder patient for display
-                Patient p = new Patient();
-                p.setId(u.getId()); // Use User ID temporarily
-                p.setName(u.getName());
-                p.setEmail(u.getEmail());
-                p.setPhone("Not Updated");
-                patients.add(p);
+        for (User u : allUsers) {
+            String role = u.getRole();
+            if (role != null && "patient".equalsIgnoreCase(role)) {
+                Optional<Patient> pOpt = patientRepository.findByEmail(u.getEmail());
+                if (pOpt.isPresent()) {
+                    patients.add(pOpt.get());
+                } else {
+                    Patient p = new Patient();
+                    p.setId(u.getId());
+                    p.setName(u.getName());
+                    p.setEmail(u.getEmail());
+                    p.setPhone("Not Updated");
+                    patients.add(p);
+                }
             }
         }
         return patients;
