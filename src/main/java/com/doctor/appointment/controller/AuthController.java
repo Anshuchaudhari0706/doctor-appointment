@@ -3,7 +3,9 @@ package com.doctor.appointment.controller;
 import com.doctor.appointment.model.LoginRequest;
 import com.doctor.appointment.model.LoginResponse;
 import com.doctor.appointment.model.User;
+import com.doctor.appointment.model.Patient;
 import com.doctor.appointment.repository.UserRepository;
+import com.doctor.appointment.repository.PatientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // Assuming this is here, if not I'll just do string compare for a simple demo if needed, but the import was already there.
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
 
     @Autowired
     private BCryptPasswordEncoder encoder;
@@ -82,6 +87,19 @@ public class AuthController {
                 } catch (Exception emailEx) {
                     // Log but don't fail registration if email fails
                     System.err.println("Failed to send welcome email: " + emailEx.getMessage());
+                }
+            }
+
+            // Create Patient Profile Automatically if role is patient
+            if ("patient".equalsIgnoreCase(savedUser.getRole())) {
+                try {
+                    Patient newPatient = new Patient();
+                    newPatient.setEmail(savedUser.getEmail());
+                    newPatient.setName(savedUser.getName());
+                    // Other fields are optional initially
+                    patientRepository.save(newPatient);
+                } catch (Exception pEx) {
+                    System.err.println("Failed to create patient profile: " + pEx.getMessage());
                 }
             }
 
