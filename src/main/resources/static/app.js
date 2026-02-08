@@ -29,6 +29,9 @@ function setTab(tab) {
         if (role === 'doctor') {
             fetchDoctorAppointments();
         } else if (role === 'admin') {
+            if (tab === 'doctors') fetchDoctors();
+            if (tab === 'patients') fetchPatients();
+            if (tab === 'appointments') fetchAdminAppointments();
         } else {
             fetchAppointments();
             fetchDoctors();
@@ -253,6 +256,50 @@ async function fetchDoctorProfile() {
             render();
         }
     } catch (e) { console.error("Failed to fetch doctor profile", e); }
+}
+
+async function fetchPatients() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/patients`);
+        const data = await res.json();
+        state.patients = data;
+        render();
+    } catch (e) { console.error("Failed to fetch patients", e); }
+}
+
+async function fetchAdminAppointments() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/appointments`);
+        const data = await res.json();
+        state.allAppointments = data;
+        render();
+    } catch (e) { console.error("Failed to fetch admin appointments", e); }
+}
+
+async function deleteDoctor(id) {
+    if (!confirm("Are you sure you want to delete this doctor? This cannot be undone.")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            alert("Doctor deleted");
+            fetchDoctors();
+        } else {
+            alert("Failed to delete");
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function deletePatient(id) {
+    if (!confirm("Are you sure you want to delete this patient?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            alert("Patient deleted");
+            fetchPatients();
+        } else {
+            alert("Failed to delete");
+        }
+    } catch (e) { console.error(e); }
 }
 
 async function bookAppointmentBackend(docId, docName, docEmail) {
@@ -720,6 +767,7 @@ function renderAdminTabs() {
         case 'dashboard': return AdminDashboardHome();
         case 'doctors': return AdminManageDoctors();
         case 'patients': return AdminManagePatients();
+        case 'appointments': return AdminAppointments();
         case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
@@ -1833,7 +1881,12 @@ const AdminManageDoctors = () => `
                         <span style="font-weight:600;">${d.name}</span><br>
                         <span class="text-sm text-muted">${d.specialization || 'General'} • ${d.experienceYears || '0'} Exp</span>
                         </div>
-                        <span class="status-badge status-confirmed">Registered</span>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <span class="status-badge status-confirmed">Registered</span>
+                            <button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteDoctor('${d.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `).join('')}
              ` : ''}
@@ -1843,8 +1896,64 @@ const AdminManageDoctors = () => `
 
 const AdminManagePatients = () => `
      <div class="card">
-        <h3>Manage Patients</h3>
-        <p>List of all registered patients.</p>
+        <div class="card-header">
+            <div class="card-title">Manage Patients</div>
+            <button class="btn btn-secondary btn-sm" onclick="fetchPatients()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
+             ${(!state.patients || state.patients.length === 0) ? '<p class="text-muted">No patients found.</p>' : ''}
+             ${(state.patients || []).map(p => `
+                <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-weight:600;">${p.name || 'Unknown'}</span><br>
+                        <span class="text-sm text-muted">${p.email} • ${p.phone || 'No Phone'}</span>
+                    </div>
+                     <div style="display:flex; gap:0.5rem; align-items:center;">
+                         <span class="badge" style="background:var(--surface);">Patient</span>
+                         <button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deletePatient('${p.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+             `).join('')}
+        </div>
+    </div>
+`;
+
+const AdminAppointments = () => `
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">All System Bookings</div>
+            <button class="btn btn-secondary btn-sm" onclick="fetchAdminAppointments()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        
+        <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+            <thead>
+                <tr style="text-align:left; border-bottom:1px solid var(--border);">
+                    <th style="padding:0.5rem;">Date</th>
+                    <th style="padding:0.5rem;">Doctor</th>
+                    <th style="padding:0.5rem;">Patient</th>
+                    <th style="padding:0.5rem;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(!state.allAppointments || state.allAppointments.length === 0) ? '<tr><td colspan="4" class="text-center p-4 text-muted">No bookings found.</td></tr>' : ''}
+                ${(state.allAppointments || []).map(apt => `
+                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+                        <td style="padding:0.8rem 0.5rem;">
+                            <div style="font-weight:600;">${apt.date}</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">${apt.time}</div>
+                        </td>
+                        <td style="padding:0.8rem 0.5rem;">${apt.doctorName}</td>
+                        <td style="padding:0.8rem 0.5rem;">${apt.patientName}</td>
+                        <td style="padding:0.8rem 0.5rem;">
+                            <span class="status-badge status-${apt.status ? apt.status.toLowerCase() : 'pending'}">${apt.status}</span>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
     </div>
 `;
 
