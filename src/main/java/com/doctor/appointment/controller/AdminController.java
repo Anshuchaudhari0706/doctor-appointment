@@ -58,7 +58,25 @@ public class AdminController {
 
     @GetMapping("/patients")
     public List<Patient> getAllPatients() {
-        return patientRepository.findAll();
+        // Get all Users with role "patient"
+        List<User> users = userRepository.findByRole("patient");
+        List<Patient> patients = new java.util.ArrayList<>();
+
+        for (User u : users) {
+            Optional<Patient> pOpt = patientRepository.findByEmail(u.getEmail());
+            if (pOpt.isPresent()) {
+                patients.add(pOpt.get());
+            } else {
+                // Create a placeholder patient for display
+                Patient p = new Patient();
+                p.setId(u.getId()); // Use User ID temporarily
+                p.setName(u.getName());
+                p.setEmail(u.getEmail());
+                p.setPhone("Not Updated");
+                patients.add(p);
+            }
+        }
+        return patients;
     }
 
     @DeleteMapping("/patients/{id}")
