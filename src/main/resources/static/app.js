@@ -29,6 +29,9 @@ function setTab(tab) {
         if (role === 'doctor') {
             fetchDoctorAppointments();
         } else if (role === 'admin') {
+            fetchDoctors();
+            fetchPatients();
+            fetchAdminAppointments();
             if (tab === 'doctors') fetchDoctors();
             if (tab === 'patients') fetchPatients();
             if (tab === 'appointments') fetchAdminAppointments();
@@ -1772,26 +1775,32 @@ const TabDoctorProfile = () => `
 `;
 
 
-const AdminDashboardHome = () => `
+const AdminDashboardHome = () => {
+    const patientCount = state.patients ? state.patients.length : 0;
+    const doctorCount = state.doctors ? state.doctors.length : 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const appointmentsToday = (state.allAppointments || []).filter(a => a.date === todayStr).length;
+
+    return `
     <div class="grid-cols-3 mb-4">
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--primary);background:rgba(76,201,240,0.1);"><i class="fas fa-users"></i></div>
             <div class="stat-info">
-                <h3>150+</h3>
+                <h3>${patientCount}</h3>
                 <p class="text-muted">Total Patients</p>
             </div>
         </div>
         <div class="card stat-card">
              <div class="stat-icon" style="color:var(--accent);background:rgba(114,9,183,0.1);"><i class="fas fa-user-md"></i></div>
             <div class="stat-info">
-                <h3>25</h3>
+                <h3>${doctorCount}</h3>
                 <p class="text-muted">Active Doctors</p>
             </div>
         </div>
         <div class="card stat-card">
              <div class="stat-icon" style="color:var(--success);background:rgba(16,185,129,0.1);"><i class="fas fa-calendar-check"></i></div>
             <div class="stat-info">
-                <h3>45</h3>
+                <h3>${appointmentsToday}</h3>
                 <p class="text-muted">Appointments Today</p>
             </div>
         </div>
@@ -1801,34 +1810,10 @@ const AdminDashboardHome = () => `
         <div class="card-header">
             <div class="card-title">Recent System Activity</div>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Action</th>
-                    <th>Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Dr. House</td>
-                    <td>Updated Availability</td>
-                    <td>2 mins ago</td>
-                </tr>
-                <tr>
-                    <td>Admin</td>
-                    <td>Approved New Doctor</td>
-                    <td>10 mins ago</td>
-                </tr>
-                 <tr>
-                    <td>New Patient</td>
-                    <td>Registered</td>
-                    <td>15 mins ago</td>
-                </tr>
-            </tbody>
-        </table>
+        <p class="text-muted p-4">Real-time activity logs coming soon.</p>
     </div>
-`;
+    `;
+};
 
 const AdminManageDoctors = () => `
     <div class="card">
@@ -1863,15 +1848,6 @@ const AdminManageDoctors = () => `
         ` : ''}
 
         <div style="margin-top:1rem;">
-            <p class="text-muted mb-2">Existing External Doctors (Hardcoded Demo)</p>
-             <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                   <span style="font-weight:600;">Dr. House</span><br>
-                   <span class="text-sm text-muted">Diagnostics • doctor@medicare.com</span>
-                </div>
-                <span class="status-badge status-confirmed">Active</span>
-             </div>
-             
              <!-- To list DB doctors we would need a fetch call here analogous to state.doctors -->
              ${state.doctors && state.doctors.length > 0 ? `
                 <p class="text-muted mt-4 mb-2">Registered Doctors</p>
