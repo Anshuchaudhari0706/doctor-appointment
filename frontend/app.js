@@ -3,7 +3,7 @@
 
 
 const state = {
-    user: null,
+    user: null, // Will be updated from localStorage if available
     route: 'login',
     activeTab: 'dashboard',
     selectedRole: 'patient',
@@ -12,17 +12,43 @@ const state = {
     reports: []
 };
 
+// Check for saved user session
+const savedUser = localStorage.getItem('user');
+if (savedUser) {
+    try {
+        state.user = JSON.parse(savedUser);
+        state.route = 'dashboard';
+        const savedTab = localStorage.getItem('activeTab');
+        if (savedTab) {
+            state.activeTab = savedTab;
+        }
+    } catch (e) {
+        console.error("Error parsing saved user session:", e);
+        localStorage.removeItem('user');
+        state.user = null;
+    }
+} else {
+    // If no user, check if we have a saved route (e.g. register)
+    const savedRoute = localStorage.getItem('route');
+    if (savedRoute && ['login', 'register', 'forgot-password'].includes(savedRoute)) {
+        state.route = savedRoute;
+    }
+}
+
 
 const app = document.getElementById('app');
 
 
 function navigate(route) {
     state.route = route;
+    localStorage.setItem('route', route);
     render();
 }
 
 function setTab(tab) {
     state.activeTab = tab;
+    // Persist this choice
+    localStorage.setItem('activeTab', tab);
     const role = state.user ? state.user.role : state.selectedRole;
 
     if (tab === 'dashboard') {
@@ -69,6 +95,10 @@ async function fetchDoctors() {
     try {
         const res = await fetch(`${API_BASE}/doctors`);
         const data = await res.json();
+        const today = new Date().toISOString().split('T')[0];
+        data.forEach(d => {
+            if (d.schedule) d.schedule = d.schedule.filter(s => s.date >= today);
+        });
         state.doctors = data;
         render();
     } catch (e) { console.error("Failed to fetch doctors", e); }
@@ -79,7 +109,9 @@ async function fetchAppointments() {
     try {
         const res = await fetch(`${API_BASE}/appointments/patient/${state.user.email}`);
         const data = await res.json();
-        state.appointments = data;
+        // Filter out past appointments
+        const today = new Date().toISOString().split('T')[0];
+        state.appointments = data.filter(a => a.date >= today);
         render();
     } catch (e) { console.error("Failed to fetch appointments", e); }
 }
@@ -89,7 +121,9 @@ async function fetchDoctorAppointments() {
     try {
         const res = await fetch(`${API_BASE}/appointments/doctor/${state.user.email}`);
         const data = await res.json();
-        state.appointments = data;
+        // Filter out past appointments
+        const today = new Date().toISOString().split('T')[0];
+        state.appointments = data.filter(a => a.date >= today);
         render();
     } catch (e) { console.error("Failed to fetch doctor appointments", e); }
 }
@@ -240,7 +274,8 @@ async function fetchDoctorProfile() {
         const data = await res.json();
         if (data) {
             state.doctorProfile = data;
-            window.tempSchedule = data.schedule || [];
+            const today = new Date().toISOString().split('T')[0];
+            window.tempSchedule = (data.schedule || []).filter(s => s.date >= today);
             render();
         }
     } catch (e) { console.error("Failed to fetch doctor profile", e); }
@@ -311,7 +346,14 @@ async function login(e) {
                 role: data.role,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
+            // Persist login
+            localStorage.setItem('user', JSON.stringify(state.user));
+            // Set default tab on login, maybe also save it
+            state.activeTab = 'dashboard';
+            localStorage.setItem('activeTab', 'dashboard');
+
             state.route = 'dashboard';
+            localStorage.setItem('route', 'dashboard');
             setTab('dashboard');
         } else {
             console.warn("Login failed response:", data);
@@ -406,6 +448,9 @@ async function resetPassword(e) {
 function logout() {
     state.user = null;
     state.activeTab = 'dashboard';
+    localStorage.removeItem('user');
+    localStorage.removeItem('activeTab');
+    localStorage.removeItem('route');
     navigate('login');
 }
 
@@ -573,11 +618,11 @@ const RegisterView = () => `
             <form onsubmit="register(event)">
                 <div class="form-group">
                     <label class="form-label">Full Name</label>
-                    <input type="text" id="reg-name" class="form-input" placeholder="John Doe" required>
+                    <input type="text" id="reg-name" class="form-input" placeholder="Enter your Full Name" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" id="reg-email" class="form-input" placeholder="john@example.com" required>
+                    <input type="email" id="reg-email" class="form-input" placeholder="Enter your Email ID" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
@@ -770,7 +815,7 @@ const DoctorSchedule = () => `
                 <input type="text" id="doc-spec" class="form-input" placeholder="e.g. Cardiologist" value="${state.doctorProfile?.specialization || ''}" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Consultation Fee ($)</label>
+                <label class="form-label">Consultation Fee (₹)</label>
                 <input type="number" id="doc-fee" class="form-input" placeholder="100" value="${state.doctorProfile?.consultationFee || ''}" required>
             </div>
             
@@ -1994,4 +2039,10 @@ function render() {
 }
 
 // Init
-render();
+if (state.user) {
+    // If logged in, fetch data for the active tab and render
+    setTab(state.activeTab);
+} else {
+    // Otherwise render login page
+    render();
+}
