@@ -13,6 +13,7 @@ public class User {
     private String email;
     private String password;
     private String role = "PATIENT";
+    private String doctorId;
 
     @org.springframework.data.annotation.Transient
     private String otp;
@@ -63,6 +64,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getDoctorId() {
+        return doctorId;
+    }
+
+    public void setDoctorId(String doctorId) {
+        this.doctorId = doctorId;
     }
 
     public void setPassword(String password) {

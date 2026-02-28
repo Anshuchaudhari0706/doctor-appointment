@@ -138,7 +138,7 @@ public class AuthController {
             User user = userOpt.get();
             if (encoder.matches(password, user.getPassword())) {
                 return new LoginResponse("Login successful", true, user.getRole(),
-                        user.getName() != null ? user.getName() : "Valued Patient", user.getEmail());
+                        user.getName() != null ? user.getName() : "User", user.getEmail(), user.getDoctorId());
             } else {
                 return new LoginResponse("Invalid password", false);
             }

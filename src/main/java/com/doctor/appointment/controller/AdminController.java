@@ -39,6 +39,8 @@ public class AdminController {
 
     @DeleteMapping("/doctors/{id}")
     public String deleteDoctor(@PathVariable String id) {
+        if (id == null)
+            return "Invalid ID";
         // id is the DoctorProfile ID
         Optional<DoctorProfile> profileOpt = doctorRepository.findById(id);
         if (profileOpt.isPresent()) {
@@ -83,6 +85,8 @@ public class AdminController {
 
     @DeleteMapping("/patients/{id}")
     public String deletePatient(@PathVariable String id) {
+        if (id == null)
+            return "Invalid ID";
         // id is the Patient ID
         Optional<Patient> patientOpt = patientRepository.findById(id);
         if (patientOpt.isPresent()) {
@@ -110,5 +114,18 @@ public class AdminController {
     public String deleteAppointment(@PathVariable String id) {
         appointmentRepository.deleteById(id);
         return "Appointment deleted successfully";
+    }
+
+    // --- RECEPTIONISTS ---
+
+    @GetMapping("/receptionists")
+    public List<User> getAllReceptionists() {
+        return userRepository.findByRole("receptionist");
+    }
+
+    @DeleteMapping("/receptionists/{id}")
+    public String deleteReceptionist(@PathVariable String id) {
+        userRepository.deleteById(id);
+        return "Receptionist deleted successfully";
     }
 }
