@@ -1569,7 +1569,11 @@ const TabBookings = () => `
 
 const TabBookNew = () => {
     const query = (state.bookingSearchQuery || '').toLowerCase();
-    const filteredDoctors = state.doctors.filter(doc =>
+
+    // Only show doctors that have available slots
+    const availableDocs = state.doctors.filter(d => d.schedule && d.schedule.length > 0);
+
+    const filteredDoctors = availableDocs.filter(doc =>
         (doc.name && doc.name.toLowerCase().includes(query)) ||
         (doc.specialization && doc.specialization.toLowerCase().includes(query))
     );
@@ -1585,22 +1589,22 @@ const TabBookNew = () => {
                    value="${state.bookingSearchQuery || ''}" 
                    oninput="state.bookingSearchQuery = this.value; render();" autofocus>
         </div>
-        ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
-        ${state.doctors.length > 0 && filteredDoctors.length === 0 ? '<p class="text-muted mt-4 text-center">No doctors match your search.</p>' : ''}
+        ${availableDocs.length === 0 ? '<p class="text-muted mt-4">No doctors with available slots today.</p>' : ''}
+        ${availableDocs.length > 0 && filteredDoctors.length === 0 ? '<p class="text-muted mt-4 text-center">No doctors match your search.</p>' : ''}
         
         <div class="grid-cols-2 mt-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
              ${filteredDoctors.map(doc => `
                 <div style="padding:1.5rem;border:1px solid var(--border);border-radius:16px;text-align:center;">
                     <div class="avatar" style="margin:0 auto 1rem auto;width:60px;height:60px;font-size:1.5rem;background:var(--accent);">${doc.name ? doc.name.substring(0, 2).toUpperCase() : 'DR'}</div>
                     <h4 class="mb-2">${doc.name}</h4>
-                    <p class="text-muted mb-2">${doc.specialization}</p>
-                    <p class="text-success mb-4" style="font-weight:600;">$${doc.consultationFee}</p>
+                    <p class="text-muted mb-2">${doc.specialization || 'General'}</p>
+                    <p class="text-success mb-4" style="font-weight:600;">₹${doc.consultationFee || '500'}</p>
                     
                     <div style="margin-bottom:1rem;color:var(--text-secondary);font-size:0.85rem;">
-                       ${doc.schedule && doc.schedule.length > 0 ? 'Available Slots:' : 'No slots available'}
+                       Available Slots:
                     </div>
                     <div style="display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-                        ${doc.schedule ? doc.schedule.slice(0, 3).map(s => `<span style="font-size:0.8rem;padding:4px 8px;background:var(--surface);border-radius:4px;">${s.date} ${s.startTime}</span>`).join('') : ''}
+                        ${doc.schedule.slice(0, 3).map(s => `<span style="font-size:0.8rem;padding:4px 8px;background:var(--surface);border-radius:4px;">${s.date} ${s.startTime}</span>`).join('')}
                     </div>
                     <button class="btn btn-primary" style="width:100%" onclick="bookAppointmentBackend('${doc.id}', '${doc.name}', '${doc.userId}')">Book Visit</button>
                 </div>
