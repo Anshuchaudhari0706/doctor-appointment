@@ -1811,34 +1811,56 @@ const TabSettings = () => `<div class="card"><h3>Settings</h3><p>App preferences
 
 
 
-const TabDoctorProfile = () => `
-    <div class="card" style="max-width: 600px; margin: 0 auto;">
-        <div class="card-header">
-            <div class="card-title">Profile & Settings</div>
-        </div>
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="width: 80px; height: 80px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white; margin: 0 auto 1rem auto;">
-                ${state.user.avatar}
+const TabDoctorProfile = () => {
+    return `
+    <div class="card" style="max-width:800px;margin:0 auto;">
+         <div class="card-header">
+            <div class="card-title">My Profile</div>
+            <button class="btn btn-secondary btn-sm" onclick="setTab('my-schedule')"><i class="fas fa-edit"></i> Edit Profile Settings</button>
+         </div>
+         
+         <div style="display:flex; gap:2rem; align-items:flex-start; margin-top:1rem;">
+            <div style="text-align:center; min-width:150px;">
+                <div style="width:120px;height:120px;background:var(--accent);border-radius:50%;margin:0 auto 1rem auto;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;">
+                    ${state.user.avatar}
+                </div>
+                <span class="badge" style="background: rgba(114,9,183,0.1); color: var(--accent); padding: 5px 10px; border-radius: 20px;">Doctor</span>
             </div>
-            <h3>${state.user.name}</h3>
-            <span class="badge" style="background: rgba(114,9,183,0.1); color: var(--accent);">Doctor</span>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input type="text" class="form-input" value="${state.user.name}" readonly>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="text" class="form-input" value="${state.user.email}" readonly>
-        </div>
-        
-        <div class="alert" style="background: rgba(114,9,183,0.05); border: 1px solid rgba(114,9,183,0.2); color: var(--accent);">
-            <i class="fas fa-info-circle"></i> To manage your <strong>Availability</strong> and <strong>Consultation Fees</strong>, please use the <a href="#" onclick="setTab('my-schedule')">My Schedule</a> tab.
-        </div>
+            <div style="flex:1; display:grid; grid-template-columns: repeat(2, 1fr); gap:1.5rem;">
+                <div>
+                    <div class="text-muted text-sm">Full Name</div>
+                    <div style="font-weight:600; font-size:1.1rem;">${state.doctorProfile?.name || state.user.name}</div>
+                </div>
+                 <div>
+                    <div class="text-muted text-sm">Email</div>
+                    <div style="font-weight:600;">${state.user.email}</div>
+                </div>
+                 <div>
+                    <div class="text-muted text-sm">Phone</div>
+                    <div style="font-weight:600;">${state.doctorProfile?.phone || '-'}</div>
+                </div>
+                <div>
+                    <div class="text-muted text-sm">Specialization</div>
+                    <div style="font-weight:600;">${state.doctorProfile?.specialization || 'General'}</div>
+                </div>
+                 <div>
+                    <div class="text-muted text-sm">Consultation Fee</div>
+                    <div style="font-weight:600;">₹${state.doctorProfile?.consultationFee || '500'}</div>
+                </div>
+                 <div style="grid-column: span 2;">
+                    <div class="text-muted text-sm">Hospital Name</div>
+                    <div style="font-weight:600;">${state.doctorProfile?.hospitalName || '-'}</div>
+                </div>
+                 <div style="grid-column: span 2;">
+                    <div class="text-muted text-sm">Hospital Address</div>
+                    <div style="font-weight:600;">${state.doctorProfile?.hospitalAddress || '-'}</div>
+                </div>
+            </div>
+         </div>
     </div>
-`;
-
+    `;
+};
 
 
 
