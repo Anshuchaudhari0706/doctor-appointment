@@ -509,6 +509,7 @@ const DoctorNavbar = () => `
             ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'My Patients')}
+            ${navItem('receptionists', 'fas fa-user-nurse', 'My Receptionists')}
             ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
         </div>
         <div class="mt-auto">
@@ -563,9 +564,10 @@ const ReceptionistNavbar = () => `
         <div class="nav-links">
             ${navItem('dashboard', 'fas fa-th-large', 'Dashboard')}
             ${navItem('calendar', 'fas fa-calendar-alt', 'Calendar')}
-            ${navItem('my-schedule', 'fas fa-clock', 'Dr Schedule')}
+            ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'Patients')}
+            ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
         </div>
         <div class="mt-auto">
             <div class="nav-item" onclick="logout()">
@@ -818,6 +820,7 @@ function renderReceptionistTabs() {
         case 'appointments': return DoctorAppointments();
         case 'calendar': return TabCalendar();
         case 'patients': return DoctorPatients();
+        case 'profile': return TabDoctorProfile();
         default: return DoctorDashboardHome();
     }
 }
