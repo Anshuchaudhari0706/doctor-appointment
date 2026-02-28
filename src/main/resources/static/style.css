@@ -235,6 +235,20 @@ h6 {
     flex-direction: column;
     padding: 2rem 1rem;
     transition: transform 0.3s ease;
+    /* Allow scrollbar */
+    scrollbar-width: auto;
+    /* Firefox */
+    -ms-overflow-style: auto;
+    /* IE and Edge */
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 10px;
 }
 
 .sidebar-header {
@@ -258,6 +272,20 @@ h6 {
     gap: 0.5rem;
     flex: 1;
     overflow-y: auto;
+    /* Allow scrollbar */
+    scrollbar-width: auto;
+    /* Firefox */
+    -ms-overflow-style: auto;
+    /* IE and Edge */
+}
+
+.nav-links::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nav-links::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 10px;
 }
 
 .nav-item {

@@ -3,7 +3,7 @@
 
 
 const state = {
-    user: null,
+    user: null, // Will be updated from localStorage if available
     route: 'login',
     activeTab: 'dashboard',
     selectedRole: 'patient',
@@ -12,29 +12,53 @@ const state = {
     reports: []
 };
 
+// Check for saved user session
+const savedUser = localStorage.getItem('user');
+if (savedUser) {
+    try {
+        state.user = JSON.parse(savedUser);
+        state.route = 'dashboard';
+        const savedTab = localStorage.getItem('activeTab');
+        if (savedTab) {
+            state.activeTab = savedTab;
+        }
+    } catch (e) {
+        console.error("Error parsing saved user session:", e);
+        localStorage.removeItem('user');
+        state.user = null;
+    }
+} else {
+    // If no user, check if we have a saved route (e.g. register)
+    const savedRoute = localStorage.getItem('route');
+    if (savedRoute && ['login', 'register', 'forgot-password'].includes(savedRoute)) {
+        state.route = savedRoute;
+    }
+}
+
 
 const app = document.getElementById('app');
 
 
 function navigate(route) {
     state.route = route;
+    localStorage.setItem('route', route);
     render();
 }
 
 function setTab(tab) {
     state.activeTab = tab;
+    // Persist this choice
+    localStorage.setItem('activeTab', tab);
     const role = state.user ? state.user.role : state.selectedRole;
 
     if (tab === 'dashboard') {
-        if (role === 'doctor') {
+        if (role === 'doctor' || role === 'receptionist') {
             fetchDoctorAppointments();
         } else if (role === 'admin') {
-            fetchDoctors();
-            fetchPatients();
+            fetchAdminDoctors();
+            fetchAdminPatients();
+            fetchAdminReceptionists();
             fetchAdminAppointments();
-            if (tab === 'doctors') fetchDoctors();
-            if (tab === 'patients') fetchPatients();
-            if (tab === 'appointments') fetchAdminAppointments();
         } else {
             fetchAppointments();
             fetchDoctors();
@@ -49,13 +73,20 @@ function setTab(tab) {
     if (tab === 'book-new') fetchDoctors();
     if (tab === 'bookings') fetchAppointments();
     if (tab === 'appointments') {
-        if (role === 'doctor') fetchDoctorAppointments();
+        if (role === 'admin') fetchAdminAppointments();
+        else if (role === 'doctor' || role === 'receptionist') fetchDoctorAppointments();
         else fetchAppointments();
     }
     if (tab === 'reports') fetchReports();
     if (tab === 'nearby') fetchDoctors();
     if (tab === 'profile') fetchPatientProfile();
     if (tab === 'my-schedule') fetchDoctorProfile();
+
+    if (role === 'admin') {
+        if (tab === 'doctors') fetchAdminDoctors();
+        if (tab === 'patients') fetchAdminPatients();
+        if (tab === 'receptionists') fetchAdminReceptionists();
+    }
 
     render();
 }
@@ -261,50 +292,6 @@ async function fetchDoctorProfile() {
     } catch (e) { console.error("Failed to fetch doctor profile", e); }
 }
 
-async function fetchPatients() {
-    try {
-        const res = await fetch(`${API_BASE}/admin/patients`);
-        const data = await res.json();
-        state.patients = data;
-        render();
-    } catch (e) { console.error("Failed to fetch patients", e); }
-}
-
-async function fetchAdminAppointments() {
-    try {
-        const res = await fetch(`${API_BASE}/admin/appointments`);
-        const data = await res.json();
-        state.allAppointments = data;
-        render();
-    } catch (e) { console.error("Failed to fetch admin appointments", e); }
-}
-
-async function deleteDoctor(id) {
-    if (!confirm("Are you sure you want to delete this doctor? This cannot be undone.")) return;
-    try {
-        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert("Doctor deleted");
-            fetchDoctors();
-        } else {
-            alert("Failed to delete");
-        }
-    } catch (e) { console.error(e); }
-}
-
-async function deletePatient(id) {
-    if (!confirm("Are you sure you want to delete this patient?")) return;
-    try {
-        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert("Patient deleted");
-            fetchPatients();
-        } else {
-            alert("Failed to delete");
-        }
-    } catch (e) { console.error(e); }
-}
-
 async function bookAppointmentBackend(docId, docName, docEmail) {
     if (!confirm(`Book appointment with ${docName}?`)) return;
 
@@ -370,7 +357,14 @@ async function login(e) {
                 role: data.role,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
+            // Persist login
+            localStorage.setItem('user', JSON.stringify(state.user));
+            // Set default tab on login, maybe also save it
+            state.activeTab = 'dashboard';
+            localStorage.setItem('activeTab', 'dashboard');
+
             state.route = 'dashboard';
+            localStorage.setItem('route', 'dashboard');
             setTab('dashboard');
         } else {
             console.warn("Login failed response:", data);
@@ -465,6 +459,9 @@ async function resetPassword(e) {
 function logout() {
     state.user = null;
     state.activeTab = 'dashboard';
+    localStorage.removeItem('user');
+    localStorage.removeItem('activeTab');
+    localStorage.removeItem('route');
     navigate('login');
 }
 
@@ -512,6 +509,7 @@ const DoctorNavbar = () => `
             ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'My Patients')}
+            ${navItem('receptionists', 'fas fa-user-nurse', 'My Receptionists')}
             ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
         </div>
         <div class="mt-auto">
@@ -535,6 +533,7 @@ const AdminNavbar = () => `
             ${navItem('dashboard', 'fas fa-th-large', 'Dashboard')}
             ${navItem('doctors', 'fas fa-user-md', 'Manage Doctors')}
             ${navItem('patients', 'fas fa-users', 'Manage Patients')}
+            ${navItem('receptionists', 'fas fa-user-nurse', 'Manage Receptionists')}
             ${navItem('appointments', 'fas fa-calendar-alt', 'All Appointments')}
             ${navItem('settings', 'fas fa-cog', 'System Settings')}
         </div>
@@ -554,6 +553,30 @@ const navItem = (id, icon, label) => `
     </div>
 `;
 
+const ReceptionistNavbar = () => `
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-user-nurse" style="color:white;"></i>
+            </div>
+            <div class="logo-text">Receptionist</div>
+        </div>
+        <div class="nav-links">
+            ${navItem('dashboard', 'fas fa-th-large', 'Dashboard')}
+            ${navItem('calendar', 'fas fa-calendar-alt', 'Calendar')}
+            ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
+            ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
+            ${navItem('patients', 'fas fa-users', 'Patients')}
+            ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
+        </div>
+        <div class="mt-auto">
+            <div class="nav-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </div>
+`;
 
 const LoginView = () => `
     <div class="auth-container fade-in">
@@ -570,6 +593,7 @@ const LoginView = () => `
                 <div class="role-btn ${state.selectedRole === 'patient' ? 'active' : ''}" onclick="setRole('patient')">Patient</div>
                 <div class="role-btn ${state.selectedRole === 'doctor' ? 'active' : ''}" onclick="setRole('doctor')">Doctor</div>
                 <div class="role-btn ${state.selectedRole === 'admin' ? 'active' : ''}" onclick="setRole('admin')">Admin</div>
+                <div class="role-btn ${state.selectedRole === 'receptionist' ? 'active' : ''}" onclick="setRole('receptionist')">Receptionist</div>
             </div>
 
             <form onsubmit="login(event)">
@@ -729,6 +753,29 @@ const AdminLayout = () => `
 `;
 
 
+const ReceptionistLayout = () => `
+    <div class="dashboard-layout fade-in">
+        ${ReceptionistNavbar()}
+        <main class="main-content">
+            <header class="header-bar">
+                <div class="greeting">
+                    <h1>Receptionist ${state.user.name} 👋</h1>
+                    <p class="text-muted">Managing Dr. ${state.user.doctorId || 'Doctor'}'s portal</p>
+                </div>
+                <div class="user-profile-widget" style="border-color: var(--accent);">
+                    <div class="avatar" style="background: var(--accent);">${state.user.avatar}</div>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem;">${state.user.name}</div>
+                        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:capitalize;">Receptionist</div>
+                    </div>
+                </div>
+            </header>
+            <div id="content-area">${renderReceptionistTabs()}</div>
+        </main>
+    </div>
+`;
+
+
 const TabPatientProfile = () => `
     <div class="card">
         <h3>My Profile</h3>
@@ -760,7 +807,20 @@ function renderDoctorTabs() {
         case 'appointments': return DoctorAppointments();
         case 'calendar': return TabCalendar();
         case 'patients': return DoctorPatients();
+        case 'receptionists': return DoctorReceptionists(); // New view for doctors
         case 'profile': return TabDoctorProfile(); // Use your existing profile form
+        default: return DoctorDashboardHome();
+    }
+}
+
+function renderReceptionistTabs() {
+    switch (state.activeTab) {
+        case 'dashboard': return DoctorDashboardHome();
+        case 'my-schedule': return DoctorSchedule();
+        case 'appointments': return DoctorAppointments();
+        case 'calendar': return TabCalendar();
+        case 'patients': return DoctorPatients();
+        case 'profile': return TabDoctorProfile();
         default: return DoctorDashboardHome();
     }
 }
@@ -770,7 +830,8 @@ function renderAdminTabs() {
         case 'dashboard': return AdminDashboardHome();
         case 'doctors': return AdminManageDoctors();
         case 'patients': return AdminManagePatients();
-        case 'appointments': return AdminAppointments();
+        case 'receptionists': return AdminManageReceptionists();
+        case 'appointments': return AdminManageAppointments();
         case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
@@ -1511,7 +1572,11 @@ const TabBookings = () => `
 
 const TabBookNew = () => {
     const query = (state.bookingSearchQuery || '').toLowerCase();
-    const filteredDoctors = state.doctors.filter(doc =>
+
+    // Only show doctors that have available slots
+    const availableDocs = state.doctors.filter(d => d.schedule && d.schedule.length > 0);
+
+    const filteredDoctors = availableDocs.filter(doc =>
         (doc.name && doc.name.toLowerCase().includes(query)) ||
         (doc.specialization && doc.specialization.toLowerCase().includes(query))
     );
@@ -1527,22 +1592,22 @@ const TabBookNew = () => {
                    value="${state.bookingSearchQuery || ''}" 
                    oninput="state.bookingSearchQuery = this.value; render();" autofocus>
         </div>
-        ${state.doctors.length === 0 ? '<p class="text-muted mt-4">No doctors available yet.</p>' : ''}
-        ${state.doctors.length > 0 && filteredDoctors.length === 0 ? '<p class="text-muted mt-4 text-center">No doctors match your search.</p>' : ''}
+        ${availableDocs.length === 0 ? '<p class="text-muted mt-4">No doctors with available slots today.</p>' : ''}
+        ${availableDocs.length > 0 && filteredDoctors.length === 0 ? '<p class="text-muted mt-4 text-center">No doctors match your search.</p>' : ''}
         
         <div class="grid-cols-2 mt-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
              ${filteredDoctors.map(doc => `
                 <div style="padding:1.5rem;border:1px solid var(--border);border-radius:16px;text-align:center;">
                     <div class="avatar" style="margin:0 auto 1rem auto;width:60px;height:60px;font-size:1.5rem;background:var(--accent);">${doc.name ? doc.name.substring(0, 2).toUpperCase() : 'DR'}</div>
                     <h4 class="mb-2">${doc.name}</h4>
-                    <p class="text-muted mb-2">${doc.specialization}</p>
-                    <p class="text-success mb-4" style="font-weight:600;">$${doc.consultationFee}</p>
+                    <p class="text-muted mb-2">${doc.specialization || 'General'}</p>
+                    <p class="text-success mb-4" style="font-weight:600;">₹${doc.consultationFee || '500'}</p>
                     
                     <div style="margin-bottom:1rem;color:var(--text-secondary);font-size:0.85rem;">
-                       ${doc.schedule && doc.schedule.length > 0 ? 'Available Slots:' : 'No slots available'}
+                       Available Slots:
                     </div>
                     <div style="display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-                        ${doc.schedule ? doc.schedule.slice(0, 3).map(s => `<span style="font-size:0.8rem;padding:4px 8px;background:var(--surface);border-radius:4px;">${s.date} ${s.startTime}</span>`).join('') : ''}
+                        ${doc.schedule.slice(0, 3).map(s => `<span style="font-size:0.8rem;padding:4px 8px;background:var(--surface);border-radius:4px;">${s.date} ${s.startTime}</span>`).join('')}
                     </div>
                     <button class="btn btn-primary" style="width:100%" onclick="bookAppointmentBackend('${doc.id}', '${doc.name}', '${doc.userId}')">Book Visit</button>
                 </div>
@@ -1775,183 +1840,7 @@ const TabDoctorProfile = () => `
 `;
 
 
-const AdminDashboardHome = () => {
-    const patientCount = state.patients ? state.patients.length : 0;
-    const doctorCount = state.doctors ? state.doctors.length : 0;
-    const todayStr = new Date().toISOString().split('T')[0];
-    const appointmentsToday = (state.allAppointments || []).filter(a => a.date === todayStr).length;
 
-    return `
-    <div class="grid-cols-3 mb-4">
-        <div class="card stat-card">
-            <div class="stat-icon" style="color:var(--primary);background:rgba(76,201,240,0.1);"><i class="fas fa-users"></i></div>
-            <div class="stat-info">
-                <h3>${patientCount}</h3>
-                <p class="text-muted">Total Patients</p>
-            </div>
-        </div>
-        <div class="card stat-card">
-             <div class="stat-icon" style="color:var(--accent);background:rgba(114,9,183,0.1);"><i class="fas fa-user-md"></i></div>
-            <div class="stat-info">
-                <h3>${doctorCount}</h3>
-                <p class="text-muted">Active Doctors</p>
-            </div>
-        </div>
-        <div class="card stat-card">
-             <div class="stat-icon" style="color:var(--success);background:rgba(16,185,129,0.1);"><i class="fas fa-calendar-check"></i></div>
-            <div class="stat-info">
-                <h3>${appointmentsToday}</h3>
-                <p class="text-muted">Appointments Today</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Recent System Activity</div>
-        </div>
-        <p class="text-muted p-4">Real-time activity logs coming soon.</p>
-    </div>
-    `;
-};
-
-const AdminManageDoctors = () => `
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Manage Doctors</div>
-            <button class="btn btn-primary" onclick="state.showAddDoctorForm = !state.showAddDoctorForm; render();">
-                ${state.showAddDoctorForm ? 'Close Form' : 'Add New Doctor'}
-            </button>
-        </div>
-
-        ${state.showAddDoctorForm ? `
-        <div class="form-group fade-in" style="background:var(--surface); padding:1.5rem; border-radius:12px; border:1px solid var(--border); margin-bottom:2rem;">
-            <h4>Register New Doctor</h4>
-            <form onsubmit="registerDoctor(event)">
-                <div class="grid-cols-2">
-                    <div>
-                        <label class="form-label">Doctor Name</label>
-                        <input type="text" id="doc-reg-name" class="form-input" placeholder="Dr. Name" required>
-                    </div>
-                    <div>
-                        <label class="form-label">Email</label>
-                        <input type="email" id="doc-reg-email" class="form-input" placeholder="doctor@medicare.com" required>
-                    </div>
-                </div>
-                <div class="form-group mt-2">
-                    <label class="form-label">Password</label>
-                    <input type="password" id="doc-reg-password" class="form-input" placeholder="Create Password" required>
-                </div>
-                <button class="btn btn-primary">Create Doctor Account</button>
-            </form>
-        </div>
-        ` : ''}
-
-        <div style="margin-top:1rem;">
-             <!-- To list DB doctors we would need a fetch call here analogous to state.doctors -->
-             ${state.doctors && state.doctors.length > 0 ? `
-                <p class="text-muted mt-4 mb-2">Registered Doctors</p>
-                ${state.doctors.map(d => `
-                     <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                        <div>
-                        <span style="font-weight:600;">${d.name}</span><br>
-                        <span class="text-sm text-muted">${d.specialization || 'General'} • ${d.experienceYears || '0'} Exp</span>
-                        </div>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <span class="status-badge status-confirmed">Registered</span>
-                            <button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteDoctor('${d.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
-             ` : ''}
-        </div>
-    </div>
-`;
-
-const AdminManagePatients = () => `
-     <div class="card">
-        <div class="card-header">
-            <div class="card-title">Manage Patients</div>
-            <button class="btn btn-secondary btn-sm" onclick="fetchPatients()"><i class="fas fa-sync"></i> Refresh</button>
-        </div>
-        
-        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
-             ${(!state.patients || state.patients.length === 0) ? '<p class="text-muted">No patients found.</p>' : ''}
-             ${(state.patients || []).map(p => `
-                <div style="padding:1rem; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-weight:600;">${p.name || 'Unknown'}</span><br>
-                        <span class="text-sm text-muted">${p.email} • ${p.phone || 'No Phone'}</span>
-                    </div>
-                     <div style="display:flex; gap:0.5rem; align-items:center;">
-                         <span class="badge" style="background:var(--surface);">Patient</span>
-                         <button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deletePatient('${p.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-             `).join('')}
-        </div>
-    </div>
-`;
-
-const AdminAppointments = () => `
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">All System Bookings</div>
-            <button class="btn btn-secondary btn-sm" onclick="fetchAdminAppointments()"><i class="fas fa-sync"></i> Refresh</button>
-        </div>
-        
-        <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
-            <thead>
-                <tr style="text-align:left; border-bottom:1px solid var(--border);">
-                    <th style="padding:0.5rem;">Date</th>
-                    <th style="padding:0.5rem;">Doctor</th>
-                    <th style="padding:0.5rem;">Patient</th>
-                    <th style="padding:0.5rem;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${(!state.allAppointments || state.allAppointments.length === 0) ? '<tr><td colspan="4" class="text-center p-4 text-muted">No bookings found.</td></tr>' : ''}
-                ${(state.allAppointments || []).map(apt => `
-                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
-                        <td style="padding:0.8rem 0.5rem;">
-                            <div style="font-weight:600;">${apt.date}</div>
-                            <div style="font-size:0.8rem; color:var(--text-secondary);">${apt.time}</div>
-                        </td>
-                        <td style="padding:0.8rem 0.5rem;">${apt.doctorName}</td>
-                        <td style="padding:0.8rem 0.5rem;">${apt.patientName}</td>
-                        <td style="padding:0.8rem 0.5rem;">
-                            <span class="status-badge status-${apt.status ? apt.status.toLowerCase() : 'pending'}">${apt.status}</span>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    </div>
-`;
-
-const AdminSystemSettings = () => `
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">System Settings</div>
-        </div>
-        
-        <div style="padding:1.5rem; background:rgba(114,9,183,0.05); border-radius:12px; border:1px solid var(--accent);">
-            <h4>Doctor Registration Access Code</h4>
-            <p class="text-muted mb-4">Share this code with doctors to allow them to register themselves.</p>
-            
-            <div style="display:flex; align-items:center; gap:1rem;">
-                <div style="font-size:1.5rem; font-weight:700; letter-spacing:2px; padding:0.5rem 1rem; background:var(--surface); border-radius:8px; border:1px dashed var(--border);">
-                    ${state.doctorAccessCode || 'DOC-2024'}
-                </div>
-                <button class="btn btn-secondary" onclick="generateNewAccessCode()"><i class="fas fa-sync"></i> Generate New Code</button>
-            </div>
-        </div>
-    </div>
-`;
 
 function generateNewAccessCode() {
     // Generate a random 6-character code
@@ -2088,4 +1977,257 @@ function render() {
 }
 
 // Init
-render();
+if (state.user) {
+    // If logged in, fetch data for the active tab and render
+    setTab(state.activeTab);
+} else {
+    // Otherwise render login page
+    render();
+}
+
+const DoctorReceptionists = () => `
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h3>Manage Receptionists</h3>
+        </div>
+
+        <div class="grid-cols-2">
+            <div class="card" style="box-shadow: none; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 1rem;">Add New Receptionist</h4>
+                <form onsubmit="createReceptionist(event)">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="rec-name" class="form-input" placeholder="Receptionist Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email / Login ID</label>
+                        <input type="email" id="rec-email" class="form-input" placeholder="receptionist@hospital.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temporary Password</label>
+                        <input type="password" id="rec-password" class="form-input" placeholder="Password for receptionist" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Receptionist</button>
+                </form>
+            </div>
+
+            <div>
+                <h4 style="margin-bottom: 1rem;">Your Receptionists</h4>
+                <div class="patients-list">
+                    ${(state.receptionists || []).length === 0 ? '<p class="text-muted">No receptionists added yet.</p>' : ''}
+                    ${(state.receptionists || []).map(r => `
+                        <div class="patient-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div class="avatar" style="width: 40px; height: 40px; font-size: 1rem;">${r.name.substring(0, 2).toUpperCase()}</div>
+                                <div>
+                                    <div style="font-weight: 600;">${r.name}</div>
+                                    <div class="text-sm text-muted">${r.email}</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); padding: 0.25rem 0.5rem;" onclick="deleteReceptionist('${r.id}')">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+
+// --- ADMIN FETCH FUNCTIONS ---
+
+async function fetchAdminDoctors() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/doctors`);
+        state.adminDoctors = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function fetchAdminPatients() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/patients`);
+        state.adminPatients = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function fetchAdminReceptionists() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/receptionists`);
+        state.adminReceptionists = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function fetchAdminAppointments() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/appointments`);
+        state.adminAppointments = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteAdminDoctor(id) {
+    if (!confirm('Delete this doctor?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
+        if (res.ok) fetchAdminDoctors();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteAdminPatient(id) {
+    if (!confirm('Delete this patient?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
+        if (res.ok) fetchAdminPatients();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteAdminReceptionist(id) {
+    if (!confirm('Delete this receptionist?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/receptionists/${id}`, { method: 'DELETE' });
+        if (res.ok) fetchAdminReceptionists();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteAdminAppointment(id) {
+    if (!confirm('Delete this appointment?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/admin/appointments/${id}`, { method: 'DELETE' });
+        if (res.ok) fetchAdminAppointments();
+    } catch (e) { console.error(e); }
+}
+
+// --- ADMIN COMPONENTS ---
+
+const AdminDashboardHome = () => {
+    const totalDoctors = (state.adminDoctors || []).length;
+    const totalPatients = (state.adminPatients || []).length;
+    const totalReceptionists = (state.adminReceptionists || []).length;
+    const totalAppointments = (state.adminAppointments || []).length;
+
+    return `
+    <div class="grid-cols-4 mb-4">
+        <div class="card stat-card">
+            <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-user-md"></i></div>
+            <div class="stat-info">
+                <h3>${totalDoctors}</h3>
+                <p class="text-muted">Total Doctors</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-icon" style="color:var(--accent);"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <h3>${totalPatients}</h3>
+                <p class="text-muted">Total Patients</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-icon" style="color:#0ea5e9;"><i class="fas fa-user-nurse"></i></div>
+            <div class="stat-info">
+                <h3>${totalReceptionists}</h3>
+                <p class="text-muted">Total Receptionists</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-calendar-check"></i></div>
+            <div class="stat-info">
+                <h3>${totalAppointments}</h3>
+                <p class="text-muted">Total Appointments</p>
+            </div>
+        </div>
+    </div>
+    `;
+};
+
+const AdminManageDoctors = () => `
+    <div class="card">
+        <h3>Manage Doctors</h3>
+        <p class="text-muted mb-4">View and remove doctors</p>
+        <div class="patients-list">
+            ${(state.adminDoctors || []).map(d => `
+                <div class="patient-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:600;">Dr. ${d.name} (${d.specialization})</div>
+                        <div class="text-sm text-muted">${d.hospitalName} - ${d.phone}</div>
+                    </div>
+                    <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);padding:0.25rem 0.5rem;" onclick="deleteAdminDoctor('${d.id}')">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+`;
+
+const AdminManagePatients = () => `
+    <div class="card">
+        <h3>Manage Patients</h3>
+        <p class="text-muted mb-4">View and remove patients</p>
+        <div class="patients-list">
+            ${(state.adminPatients || []).map(p => `
+                <div class="patient-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:600;">${p.name}</div>
+                        <div class="text-sm text-muted">${p.email} | ${p.phone}</div>
+                    </div>
+                    <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);padding:0.25rem 0.5rem;" onclick="deleteAdminPatient('${p.id}')">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+`;
+
+const AdminManageReceptionists = () => `
+    <div class="card">
+        <h3>Manage Receptionists</h3>
+        <p class="text-muted mb-4">View and remove receptionists</p>
+        <div class="patients-list">
+            ${(state.adminReceptionists || []).map(r => `
+                <div class="patient-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:600;">${r.name}</div>
+                        <div class="text-sm text-muted">Email: ${r.email} | Managing Dr. ${r.doctorId}</div>
+                    </div>
+                    <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);padding:0.25rem 0.5rem;" onclick="deleteAdminReceptionist('${r.id}')">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+`;
+
+const AdminSystemSettings = () => `
+    <div class="card">
+        <h3>System Settings</h3>
+        <p class="text-muted">Configuration and settings (Admin only)</p>
+    </div>
+`;
+
+const AdminManageAppointments = () => `
+    <div class="card">
+        <h3>All System Appointments</h3>
+        <p class="text-muted mb-4">View and remove appointments globally</p>
+        <div class="patients-list">
+            ${(state.adminAppointments || []).map(a => `
+                <div class="patient-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:600;">Date: ${a.date} | Time: ${a.time} - Status: ${a.status}</div>
+                        <div class="text-sm text-muted">Doc ID: ${a.doctorId} | Patient Name: ${a.patientName}</div>
+                    </div>
+                    <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);padding:0.25rem 0.5rem;" onclick="deleteAdminAppointment('${a.id}')">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('')}
+            ${(state.adminAppointments || []).length === 0 ? '<p>No appointments found.</p>' : ''}
+        </div>
+    </div>
+`;
