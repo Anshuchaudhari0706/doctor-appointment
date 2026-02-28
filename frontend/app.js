@@ -81,6 +81,7 @@ function setTab(tab) {
     if (tab === 'nearby') fetchDoctors();
     if (tab === 'profile') fetchPatientProfile();
     if (tab === 'my-schedule') fetchDoctorProfile();
+    if (tab === 'receptionists') fetchReceptionists();
 
     if (role === 'admin') {
         if (tab === 'doctors') fetchAdminDoctors();
@@ -290,6 +291,58 @@ async function fetchDoctorProfile() {
             render();
         }
     } catch (e) { console.error("Failed to fetch doctor profile", e); }
+}
+
+async function fetchReceptionists() {
+    if (!state.user) return;
+    try {
+        const docId = state.user.email;
+        const res = await fetch(`${API_BASE}/receptionists/doctor/${docId}`);
+        state.receptionists = await res.json();
+        render();
+    } catch (e) {
+        console.error("Failed to fetch receptionists", e);
+    }
+}
+
+async function createReceptionist(e) {
+    e.preventDefault();
+    const name = document.getElementById('rec-name').value;
+    const email = document.getElementById('rec-email').value;
+    const password = document.getElementById('rec-password').value;
+    const doctorId = state.user.email;
+
+    try {
+        const res = await fetch(`${API_BASE}/receptionists`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password, doctorId })
+        });
+        if (res.ok) {
+            alert('Receptionist Added Successfully!');
+            document.getElementById('rec-name').value = '';
+            document.getElementById('rec-email').value = '';
+            document.getElementById('rec-password').value = '';
+            fetchReceptionists();
+        } else {
+            alert('Failed to add receptionist');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Error adding receptionist');
+    }
+}
+
+async function deleteReceptionist(id) {
+    if (!confirm('Are you sure you want to remove this receptionist?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/receptionists/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            fetchReceptionists();
+        }
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 async function bookAppointmentBackend(docId, docName, docEmail) {
