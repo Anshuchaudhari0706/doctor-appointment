@@ -2053,15 +2053,6 @@ function render() {
     }
 }
 
-// Init
-if (state.user) {
-    // If logged in, fetch data for the active tab and render
-    setTab(state.activeTab);
-} else {
-    // Otherwise render login page
-    render();
-}
-
 const DoctorReceptionists = () => `
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -2110,14 +2101,14 @@ const DoctorReceptionists = () => `
             </div>
         </div>
     </div>
-`;
+    `;
 
 
 // --- ADMIN FETCH FUNCTIONS ---
 
 async function fetchAdminDoctors() {
     try {
-        const res = await fetch(`${API_BASE}/admin/doctors`);
+        const res = await fetch(`${API_BASE} /admin/doctors`);
         state.adminDoctors = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2125,7 +2116,7 @@ async function fetchAdminDoctors() {
 
 async function fetchAdminPatients() {
     try {
-        const res = await fetch(`${API_BASE}/admin/patients`);
+        const res = await fetch(`${API_BASE} /admin/patients`);
         state.adminPatients = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2133,7 +2124,7 @@ async function fetchAdminPatients() {
 
 async function fetchAdminReceptionists() {
     try {
-        const res = await fetch(`${API_BASE}/admin/receptionists`);
+        const res = await fetch(`${API_BASE} /admin/receptionists`);
         state.adminReceptionists = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2141,7 +2132,7 @@ async function fetchAdminReceptionists() {
 
 async function fetchAdminAppointments() {
     try {
-        const res = await fetch(`${API_BASE}/admin/appointments`);
+        const res = await fetch(`${API_BASE} /admin/appointments`);
         state.adminAppointments = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2150,7 +2141,7 @@ async function fetchAdminAppointments() {
 async function deleteAdminDoctor(id) {
     if (!confirm('Delete this doctor?')) return;
     try {
-        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE} /admin/doctors / ${id} `, { method: 'DELETE' });
         if (res.ok) fetchAdminDoctors();
     } catch (e) { console.error(e); }
 }
@@ -2158,7 +2149,7 @@ async function deleteAdminDoctor(id) {
 async function deleteAdminPatient(id) {
     if (!confirm('Delete this patient?')) return;
     try {
-        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE} /admin/patients / ${id} `, { method: 'DELETE' });
         if (res.ok) fetchAdminPatients();
     } catch (e) { console.error(e); }
 }
@@ -2166,7 +2157,7 @@ async function deleteAdminPatient(id) {
 async function deleteAdminReceptionist(id) {
     if (!confirm('Delete this receptionist?')) return;
     try {
-        const res = await fetch(`${API_BASE}/admin/receptionists/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE} /admin/receptionists / ${id} `, { method: 'DELETE' });
         if (res.ok) fetchAdminReceptionists();
     } catch (e) { console.error(e); }
 }
@@ -2174,7 +2165,7 @@ async function deleteAdminReceptionist(id) {
 async function deleteAdminAppointment(id) {
     if (!confirm('Delete this appointment?')) return;
     try {
-        const res = await fetch(`${API_BASE}/admin/appointments/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE} /admin/appointments / ${id} `, { method: 'DELETE' });
         if (res.ok) fetchAdminAppointments();
     } catch (e) { console.error(e); }
 }
@@ -2188,7 +2179,7 @@ const AdminDashboardHome = () => {
     const totalAppointments = (state.adminAppointments || []).length;
 
     return `
-    <div class="grid-cols-4 mb-4">
+        < div class="grid-cols-4 mb-4" >
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-user-md"></i></div>
             <div class="stat-info">
@@ -2217,12 +2208,12 @@ const AdminDashboardHome = () => {
                 <p class="text-muted">Total Appointments</p>
             </div>
         </div>
-    </div>
-    `;
+    </div >
+        `;
 };
 
 const AdminManageDoctors = () => `
-    <div class="card">
+        < div class="card" >
         <h3>Manage Doctors</h3>
         <p class="text-muted mb-4">View and remove doctors</p>
         <div class="patients-list">
@@ -2238,11 +2229,11 @@ const AdminManageDoctors = () => `
                 </div>
             `).join('')}
         </div>
-    </div>
-`;
+    </div >
+        `;
 
 const AdminManagePatients = () => `
-    <div class="card">
+        < div class="card" >
         <h3>Manage Patients</h3>
         <p class="text-muted mb-4">View and remove patients</p>
         <div class="patients-list">
@@ -2258,11 +2249,11 @@ const AdminManagePatients = () => `
                 </div>
             `).join('')}
         </div>
-    </div>
-`;
+    </div >
+        `;
 
 const AdminManageReceptionists = () => `
-    <div class="card">
+        < div class="card" >
         <h3>Manage Receptionists</h3>
         <p class="text-muted mb-4">View and remove receptionists</p>
         <div class="patients-list">
@@ -2278,18 +2269,18 @@ const AdminManageReceptionists = () => `
                 </div>
             `).join('')}
         </div>
-    </div>
-`;
+    </div >
+        `;
 
 const AdminSystemSettings = () => `
-    <div class="card">
+        < div class="card" >
         <h3>System Settings</h3>
         <p class="text-muted">Configuration and settings (Admin only)</p>
-    </div>
-`;
+    </div >
+        `;
 
 const AdminManageAppointments = () => `
-    <div class="card">
+        < div class="card" >
         <h3>All System Appointments</h3>
         <p class="text-muted mb-4">View and remove appointments globally</p>
         <div class="patients-list">
@@ -2306,5 +2297,14 @@ const AdminManageAppointments = () => `
             `).join('')}
             ${(state.adminAppointments || []).length === 0 ? '<p>No appointments found.</p>' : ''}
         </div>
-    </div>
-`;
+    </div >
+        `;
+
+// Init
+if (state.user) {
+    // If logged in, fetch data for the active tab and render
+    setTab(state.activeTab);
+} else {
+    // Otherwise render login page
+    render();
+}
