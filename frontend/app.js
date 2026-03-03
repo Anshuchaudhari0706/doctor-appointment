@@ -662,10 +662,12 @@ const LoginView = () => `
             </form>
 
             <div class="mt-4 text-muted text-sm" style="display:flex; justify-content:space-between;">
-                ${state.selectedRole !== 'admin' ? `
+                ${state.selectedRole !== 'admin' && state.selectedRole !== 'receptionist' ? `
                     <span>Don't have an account? <a href="#" style="color: var(--primary)" onclick="navigate('register')">Register</a></span>
                 ` : '<span></span>'}
-                <a href="#" style="color: var(--text-secondary)" onclick="navigate('forgot-password')">Forgot Password?</a>
+                ${state.selectedRole !== 'receptionist' ? `
+                    <a href="#" style="color: var(--text-secondary)" onclick="navigate('forgot-password')">Forgot Password?</a>
+                ` : '<span></span>'}
             </div>
         </div>
     </div>
