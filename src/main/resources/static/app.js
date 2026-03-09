@@ -2182,7 +2182,7 @@ const AdminDashboardHome = () => {
     const totalAppointments = (state.adminAppointments || []).length;
 
     return `
-        < div class="grid-cols-4 mb-4" >
+        <div class="grid-cols-4 mb-4">
         <div class="card stat-card">
             <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-user-md"></i></div>
             <div class="stat-info">
@@ -2211,12 +2211,12 @@ const AdminDashboardHome = () => {
                 <p class="text-muted">Total Appointments</p>
             </div>
         </div>
-    </div >
+    </div>
         `;
 };
 
 const AdminManageDoctors = () => `
-        < div class="card" >
+        <div class="card">
         <h3>Manage Doctors</h3>
         <p class="text-muted mb-4">View and remove doctors</p>
         <div class="patients-list">
@@ -2232,11 +2232,11 @@ const AdminManageDoctors = () => `
                 </div>
             `).join('')}
         </div>
-    </div >
+    </div>
         `;
 
 const AdminManagePatients = () => `
-        < div class="card" >
+        <div class="card">
         <h3>Manage Patients</h3>
         <p class="text-muted mb-4">View and remove patients</p>
         <div class="patients-list">
@@ -2252,11 +2252,11 @@ const AdminManagePatients = () => `
                 </div>
             `).join('')}
         </div>
-    </div >
+    </div>
         `;
 
 const AdminManageReceptionists = () => `
-        < div class="card" >
+        <div class="card">
         <h3>Manage Receptionists</h3>
         <p class="text-muted mb-4">View and remove receptionists</p>
         <div class="patients-list">
@@ -2272,18 +2272,18 @@ const AdminManageReceptionists = () => `
                 </div>
             `).join('')}
         </div>
-    </div >
+    </div>
         `;
 
 const AdminSystemSettings = () => `
-        < div class="card" >
+        <div class="card">
         <h3>System Settings</h3>
         <p class="text-muted">Configuration and settings (Admin only)</p>
-    </div >
+    </div>
         `;
 
 const AdminManageAppointments = () => `
-        < div class="card" >
+        <div class="card">
         <h3>All System Appointments</h3>
         <p class="text-muted mb-4">View and remove appointments globally</p>
         <div class="patients-list">
@@ -2300,7 +2300,7 @@ const AdminManageAppointments = () => `
             `).join('')}
             ${(state.adminAppointments || []).length === 0 ? '<p>No appointments found.</p>' : ''}
         </div>
-    </div >
+    </div>
         `;
 
 // Init
