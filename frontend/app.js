@@ -2111,7 +2111,7 @@ const DoctorReceptionists = () => `
 
 async function fetchAdminDoctors() {
     try {
-        const res = await fetch(`${API_BASE} /admin/doctors`);
+        const res = await fetch(`${API_BASE}/admin/doctors`);
         state.adminDoctors = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2119,7 +2119,7 @@ async function fetchAdminDoctors() {
 
 async function fetchAdminPatients() {
     try {
-        const res = await fetch(`${API_BASE} /admin/patients`);
+        const res = await fetch(`${API_BASE}/admin/patients`);
         state.adminPatients = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2127,7 +2127,7 @@ async function fetchAdminPatients() {
 
 async function fetchAdminReceptionists() {
     try {
-        const res = await fetch(`${API_BASE} /admin/receptionists`);
+        const res = await fetch(`${API_BASE}/admin/receptionists`);
         state.adminReceptionists = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2135,7 +2135,7 @@ async function fetchAdminReceptionists() {
 
 async function fetchAdminAppointments() {
     try {
-        const res = await fetch(`${API_BASE} /admin/appointments`);
+        const res = await fetch(`${API_BASE}/admin/appointments`);
         state.adminAppointments = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2144,7 +2144,7 @@ async function fetchAdminAppointments() {
 async function deleteAdminDoctor(id) {
     if (!confirm('Delete this doctor?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/doctors / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminDoctors();
     } catch (e) { console.error(e); }
 }
@@ -2152,7 +2152,7 @@ async function deleteAdminDoctor(id) {
 async function deleteAdminPatient(id) {
     if (!confirm('Delete this patient?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/patients / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminPatients();
     } catch (e) { console.error(e); }
 }
@@ -2160,7 +2160,7 @@ async function deleteAdminPatient(id) {
 async function deleteAdminReceptionist(id) {
     if (!confirm('Delete this receptionist?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/receptionists / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/receptionists/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminReceptionists();
     } catch (e) { console.error(e); }
 }
@@ -2168,7 +2168,7 @@ async function deleteAdminReceptionist(id) {
 async function deleteAdminAppointment(id) {
     if (!confirm('Delete this appointment?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/appointments / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/appointments/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminAppointments();
     } catch (e) { console.error(e); }
 }
