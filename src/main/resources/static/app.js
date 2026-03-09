@@ -131,7 +131,8 @@ async function fetchAppointments() {
 async function fetchDoctorAppointments() {
     if (!state.user) return;
     try {
-        const res = await fetch(`${API_BASE}/appointments/doctor/${state.user.email}`);
+        const targetId = state.user.role === 'receptionist' ? state.user.doctorId : state.user.email;
+        const res = await fetch(`${API_BASE}/appointments/doctor/${targetId}`);
         const data = await res.json();
         // Filter out past appointments
         const today = new Date().toISOString().split('T')[0];
@@ -282,7 +283,8 @@ async function savePatientProfile(e) {
 async function fetchDoctorProfile() {
     if (!state.user) return;
     try {
-        const res = await fetch(`${API_BASE}/doctors/profile/${state.user.email}`);
+        const targetId = state.user.role === 'receptionist' ? state.user.doctorId : state.user.email;
+        const res = await fetch(`${API_BASE}/doctors/profile/${targetId}`);
         const data = await res.json();
         if (data) {
             state.doctorProfile = data;
@@ -296,7 +298,7 @@ async function fetchDoctorProfile() {
 async function fetchReceptionists() {
     if (!state.user) return;
     try {
-        const docId = state.user.email;
+        const docId = state.user.role === 'receptionist' ? state.user.doctorId : state.user.email;
         const res = await fetch(`${API_BASE}/receptionists/doctor/${docId}`);
         state.receptionists = await res.json();
         render();
@@ -310,7 +312,7 @@ async function createReceptionist(e) {
     const name = document.getElementById('rec-name').value;
     const email = document.getElementById('rec-email').value;
     const password = document.getElementById('rec-password').value;
-    const doctorId = state.user.email;
+    const doctorId = state.user.role === 'receptionist' ? state.user.doctorId : state.user.email;
 
     try {
         const res = await fetch(`${API_BASE}/receptionists`, {
@@ -408,6 +410,7 @@ async function login(e) {
                 name: data.name,
                 email: data.email,
                 role: data.role,
+                doctorId: data.doctorId,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
             // Persist login
@@ -1081,7 +1084,7 @@ window.updateAvailability = async function (e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: state.user.email,
+                userId: state.user.role === 'receptionist' ? state.user.doctorId : state.user.email,
                 name: state.user.name,
                 specialization: specialization,
                 consultationFee: fee,
