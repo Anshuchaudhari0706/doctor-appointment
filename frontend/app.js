@@ -1873,6 +1873,7 @@ const TabSettings = () => `<div class="card"><h3>Settings</h3><p>App preferences
 
 
 const TabDoctorProfile = () => {
+    const isRec = state.user.role === 'receptionist';
     return `
     <div class="card" style="max-width:800px;margin:0 auto;">
          <div class="card-header">
@@ -1885,13 +1886,13 @@ const TabDoctorProfile = () => {
                 <div style="width:120px;height:120px;background:var(--accent);border-radius:50%;margin:0 auto 1rem auto;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;">
                     ${state.user.avatar}
                 </div>
-                <span class="badge" style="background: rgba(114,9,183,0.1); color: var(--accent); padding: 5px 10px; border-radius: 20px;">Doctor</span>
+                <span class="badge" style="background: rgba(114,9,183,0.1); color: var(--accent); padding: 5px 10px; border-radius: 20px;">${isRec ? 'Receptionist' : 'Doctor'}</span>
             </div>
 
             <div style="flex:1; display:grid; grid-template-columns: repeat(2, 1fr); gap:1.5rem;">
                 <div>
                     <div class="text-muted text-sm">Full Name</div>
-                    <div style="font-weight:600; font-size:1.1rem;">${state.doctorProfile?.name || state.user.name}</div>
+                    <div style="font-weight:600; font-size:1.1rem;">${isRec ? state.user.name : (state.doctorProfile?.name || state.user.name)}</div>
                 </div>
                  <div>
                     <div class="text-muted text-sm">Email</div>
@@ -1899,7 +1900,7 @@ const TabDoctorProfile = () => {
                 </div>
                  <div>
                     <div class="text-muted text-sm">Phone</div>
-                    <div style="font-weight:600;">${state.doctorProfile?.phone || '-'}</div>
+                    <div style="font-weight:600;">${isRec ? '-' : (state.doctorProfile?.phone || '-')}</div>
                 </div>
                 <div>
                     <div class="text-muted text-sm">Specialization</div>
@@ -1917,6 +1918,12 @@ const TabDoctorProfile = () => {
                     <div class="text-muted text-sm">Hospital Address</div>
                     <div style="font-weight:600;">${state.doctorProfile?.hospitalAddress || '-'}</div>
                 </div>
+                ${isRec ? `
+                 <div style="grid-column: span 2;">
+                    <div class="text-muted text-sm">Managed By Doctor</div>
+                    <div style="font-weight:600;">Dr. ${state.doctorProfile?.name || state.user.doctorId}</div>
+                </div>
+                ` : ''}
             </div>
          </div>
     </div>

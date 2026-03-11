@@ -86,10 +86,7 @@ h6 {
     box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
-}
+/* hover removed */
 
 .btn-secondary {
     background: rgba(255, 255, 255, 0.05);
@@ -97,19 +94,14 @@ h6 {
     border: 1px solid var(--border);
 }
 
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
+/* hover removed */
 
 .btn-ghost {
     background: transparent;
     color: var(--text-secondary);
 }
 
-.btn-ghost:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-}
+/* hover removed */
 
 /* Forms */
 .form-group {
@@ -300,7 +292,6 @@ h6 {
     text-decoration: none;
 }
 
-.nav-item:hover,
 .nav-item.active {
     background: rgba(67, 97, 238, 0.1);
     color: var(--primary);
@@ -373,10 +364,7 @@ h6 {
     transition: transform 0.3s ease;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(76, 201, 240, 0.3);
-}
+/* hover removed */
 
 .card-header {
     display: flex;
