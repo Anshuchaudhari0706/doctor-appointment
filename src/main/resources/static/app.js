@@ -2236,23 +2236,59 @@ async function sendChatMessage() {
     // Simulate Delay
     await new Promise(r => setTimeout(r, 1000));
 
-    let aiResponse = "I am a simulated MedDeep AI. To connect me to the actual medical APIs, please configure the Backend environment variables. However, as an advanced clinical support tool, I can provide simulated insights!";
+    let aiResponse = "I am MedDeep AI, a simulated advanced patient support assistant driven by clinical AI models like Med-PaLM 2 and BioGPT. To connect me to the actual medical APIs, please configure the Backend server environment variables. However, I can currently provide simulated insights to help guide you!";
 
     const lowerMsg = message.toLowerCase();
     
-    // MedDeep AI Chatbot Logic enhancement
-    if (lowerMsg.includes('headache') || lowerMsg.includes('migraine')) {
-        aiResponse = "<strong>MedDeep Analysis:</strong><br><br>📝 <strong>Differentials:</strong> Primary headache disorders (Tension-type, Migraine), Secondary (Sinusitis, Medication Overuse).<br>⚠️ <strong>Red Flags (SNOOP):</strong> Systemic symptoms, Neurologic symptoms, Onset sudden, Older age, Pattern change.<br><br><em>Note: Recommend booking a Neurologist.</em>";
-    } else if (lowerMsg.includes('skin') || lowerMsg.includes('rash') || lowerMsg.includes('acne')) {
-        aiResponse = "<strong>MedDeep Guideline Search:</strong><br><br>For skin conditions, first-line treatments often include topical therapies (e.g., Retinoids, Benzoyl Peroxide). For specific lesions or persistent rashes, clinical evaluation is required. You can search for a Dermatologist in the 'Book Appointment' tab.";
+    // Extensive Patient Diagnostic & Support Logic
+    
+    // 1. Queries about the AI itself
+    if (lowerMsg.includes('what ai') || lowerMsg.includes('how do you work') || lowerMsg.includes('who are you')) {
+        aiResponse = "<strong>About MedDeep AI:</strong><br><br>I am a simulated clinical decision support tool designed for <strong>Patient Support & Triage</strong>. In a live production environment, my logic is powered by large multimodal medical models similar to <strong>Google's Med-PaLM 2</strong> and <strong>Microsoft's BioGPT</strong>, which are trained specifically on biomedical research, PubMed datasets, and clinical guidelines. <br><br><em>Note: As an AI, I provide educational insights. Always consult your doctor for an official diagnosis.</em>";
+    } 
+    // 2. Neurological / Head
+    else if (lowerMsg.includes('headache') || lowerMsg.includes('migraine')) {
+        aiResponse = "<strong>Symptom Analysis: Headache</strong><br><br>📝 <strong>Possible Causes:</strong> Tension headache (stress-related), Migraine (throbbing, light sensitivity), or Sinusitis.<br>⚠️ <strong>Red Flags:</strong> Sudden 'thunderclap' onset, worst headache of your life, or accompanied by vision loss/numbness.<br>📌 <strong>Recommendation:</strong> Rest and hydration. If severe or accompanied by red flags, visit an ER. Otherwise, consider booking a <strong>Neurologist</strong> or General Physician via the 'Book' tab.";
+    }
+    // 3. Respiratory / Chest
+    else if (lowerMsg.includes('cough') || lowerMsg.includes('breathing') || lowerMsg.includes('shortness of breath')) {
+        aiResponse = "<strong>Symptom Analysis: Respiratory</strong><br><br>📝 <strong>Possible Causes:</strong> Viral URI (Common Cold), Asthma, Bronchitis, or Seasonal Allergies.<br>⚠️ <strong>Red Flags:</strong> Coughing up blood, severe shortness of breath at rest, chest pain, or high persistent fever.<br>📌 <strong>Recommendation:</strong> If you have red flags, seek urgent care. For chronic cough, book a <strong>Pulmonologist</strong> or General Physician.";
     } else if (lowerMsg.includes('heart') || lowerMsg.includes('chest pain')) {
-        aiResponse = "🚨 <strong>URGENT MEDICAL ALERT:</strong> Chest pain can be an indicator of Acute Coronary Syndrome (ACS) or Myocardial Infarction.<br><br><strong>Action:</strong> Immediately route to the nearest Emergency Room. Do not use telehealth for acute chest pain.";
-    } else if (lowerMsg.includes('drug') || lowerMsg.includes('interaction')) {
-        aiResponse = "<strong>MedDeep Pharmacokinetics:</strong><br><br>Please provide the specific list of medications. I can cross-reference PubMed and FDA databases for contraindications, QT prolongation risks, or CYP450 enzyme interactions.";
-    } else if (lowerMsg.includes('hello') || lowerMsg.includes('hi')) {
-        aiResponse = "Hello. I am MedDeep AI, your clinical decision support and health analysis tool. How can I assist you in analyzing symptoms or retrieving medical knowledge today?";
+        aiResponse = "🚨 <strong>URGENT MEDICAL ALERT:</strong> Chest pain can be an indicator of Acute Coronary Syndrome (Heart Attack).<br><br><strong>Action:</strong> Please immediately route to the nearest Emergency Room or call emergency services. Do not use telehealth for sudden, severe chest pain. If chronic/mild, consult a <strong>Cardiologist</strong>.";
+    }
+    // 4. Dermatology / Skin
+    else if (lowerMsg.includes('skin') || lowerMsg.includes('rash') || lowerMsg.includes('acne')) {
+        aiResponse = "<strong>Symptom Analysis: Dermatology</strong><br><br>📝 <strong>Possible Causes:</strong> Contact dermatitis (allergic reaction), Eczema, Psoriasis, or viral exanthem.<br>📌 <strong>Recommendation:</strong> Avoid scratching or applying unknown creams. You can search for a <strong>Dermatologist</strong> in the 'Book Appointment' tab for a proper visual examination.";
+    }
+    // 5. Gastrointestinal / Stomach
+    else if (lowerMsg.includes('stomach') || lowerMsg.includes('belly') || lowerMsg.includes('nausea') || lowerMsg.includes('diarrhea')) {
+        aiResponse = "<strong>Symptom Analysis: Gastrointestinal</strong><br><br>📝 <strong>Possible Causes:</strong> Gastroenteritis (Stomach flu), Food Poisoning, Acid Reflux (GERD), or IBS.<br>⚠️ <strong>Red Flags:</strong> Severe abdominal right-lower-quadrant pain (Appendicitis concern), black/bloody stool, or inability to keep fluids down for 24+ hours.<br>📌 <strong>Recommendation:</strong> Stay hydrated with electrolytes. If red flags are present, go to urgent care. For chronic issues, book a <strong>Gastroenterologist</strong>.";
+    }
+    // 6. Musculoskeletal / Bones & Joints
+    else if (lowerMsg.includes('joint') || lowerMsg.includes('knee') || lowerMsg.includes('arthritis')) {
+        aiResponse = "<strong>Symptom Analysis: Joint Pain</strong><br><br>📝 <strong>Possible Causes:</strong> Osteoarthritis (wear and tear), Rheumatoid Arthritis (autoimmune), or acute ligament strain.<br>📌 <strong>Recommendation:</strong> R.I.C.E. (Rest, Ice, Compression, Elevation) for acute injuries. For chronic pain, consult an <strong>Orthopedic Surgeon</strong> or <strong>Rheumatologist</strong>.";
+    } else if (lowerMsg.includes('back pain') || lowerMsg.includes('spine')) {
+        aiResponse = "<strong>Symptom Analysis: Back Pain</strong><br><br>📝 <strong>Possible Causes:</strong> Muscle strain, herniated disc, or sciatica.<br>⚠️ <strong>Red Flags:</strong> Loss of bowel/bladder control, leg weakness, or pain radiating below the knee.<br>📌 <strong>Recommendation:</strong> Maintain gentle movement; avoid heavy lifting. If red flags occur, seek urgent care. Otherwise, book an <strong>Orthopedist</strong> or <strong>Physiotherapist</strong>.";
+    }
+    // 7. ENT (Ear, Nose, Throat)
+    else if (lowerMsg.includes('ear') || lowerMsg.includes('throat') || lowerMsg.includes('swallow')) {
+        aiResponse = "<strong>Symptom Analysis: ENT</strong><br><br>📝 <strong>Possible Causes:</strong> Strep throat, viral pharyngitis, or Otitis Media (Ear infection).<br>📌 <strong>Recommendation:</strong> Warm saline gargles for throat pain. If you experience severe ear pain, fever, or difficulty swallowing liquids, book an <strong>ENT Specialist</strong>.";
+    }
+    // 8. Systemic / General
+    else if (lowerMsg.includes('fever') || lowerMsg.includes('temperature') || lowerMsg.includes('chills')) {
+        aiResponse = "<strong>Symptom Analysis: Fever</strong><br><br>📝 <strong>Context:</strong> Fever is your body's natural response to fighting an infection (viral or bacterial).<br>⚠️ <strong>Red Flags:</strong> Fever over 103°F (39.4°C), stiff neck, confusion, or lasting more than 3 days.<br>📌 <strong>Recommendation:</strong> Rest, hydrate, and consider over-the-counter antipyretics (like Paracetamol). Consult a <strong>General Physician</strong> if symptoms persist.";
+    } else if (lowerMsg.includes('tired') || lowerMsg.includes('fatigue') || lowerMsg.includes('sleep')) {
+        aiResponse = "<strong>Symptom Analysis: Fatigue</strong><br><br>📝 <strong>Possible Causes:</strong> Viral illness recovery, anemia, thyroid dysfunction, poor sleep hygiene, or stress.<br>📌 <strong>Recommendation:</strong> Ensure 7-8 hours of sleep and adequate hydration. If fatigue is chronic and unexplained, book a <strong>General Physician</strong> to check your blood panels (e.g., CBC, Thyroid).";
+    }
+    // 9. Medications Setup
+    else if (lowerMsg.includes('drug') || lowerMsg.includes('interaction') || lowerMsg.includes('medicine')) {
+        aiResponse = "<strong>MedDeep Pharmacokinetics:</strong><br><br>I am trained on medical guidelines to cross-reference drug interactions. Please provide the specific list of medications (e.g., 'Aspirin and Ibuprofen').<br><em>Always consult your prescribing doctor before changing your dosage.</em>";
+    }
+    // 10. Greetings & Defaults
+    else if (lowerMsg.includes('hello') || lowerMsg.includes('hi')) {
+        aiResponse = "Hello! I am MedDeep AI, your clinical support and patient triage assistant. Describe your symptoms (e.g., 'I have a sore throat and fever') and I will help analyze them and recommend the right specialist!";
     } else {
-        aiResponse = "Based on your clinical query, I recommend providing more context. MedDeep AI can process specific diagnostic inquiries, drug interactions, or search recent medical literature guidelines (e.g., 'What are the differentials for acute chest pain?').<br><br><em>*Disclaimer: This is a decision support tool, not a replacement for physician judgment.</em>";
+        aiResponse = "I am analyzing your query.<br><br>Based on your input, I recommend providing more specific symptoms (e.g. 'Stomach pain after eating' or 'Lower back pain'). <br>MedDeep AI can process specific diagnostic inquiries, simulate drug interactions, and recommend the correct specialist for you.<br><br><em>*Disclaimer: This is an AI triage tool, not a replacement for a doctor's diagnosis.</em>";
     }
 
     // Add AI Response
