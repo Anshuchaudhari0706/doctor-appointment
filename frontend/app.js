@@ -17,6 +17,9 @@ const savedUser = localStorage.getItem('user');
 if (savedUser) {
     try {
         state.user = JSON.parse(savedUser);
+        if (state.user && state.user.role) {
+            state.user.role = state.user.role.toLowerCase();
+        }
         state.route = 'dashboard';
         const savedTab = localStorage.getItem('activeTab');
         if (savedTab) {
@@ -409,7 +412,7 @@ async function login(e) {
             state.user = {
                 name: data.name,
                 email: data.email,
-                role: data.role,
+                role: data.role ? data.role.toLowerCase() : 'patient',
                 doctorId: data.doctorId,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
@@ -2039,10 +2042,13 @@ function render() {
             }
 
             // ROUTE TO CORRECT LAYOUT RESTRICTED BY ROLE
-            if (state.user.role === 'admin') {
+            const userRole = state.user.role ? state.user.role.toLowerCase() : 'patient';
+            if (userRole === 'admin') {
                 app.innerHTML = AdminLayout();
-            } else if (state.user.role === 'doctor') {
+            } else if (userRole === 'doctor') {
                 app.innerHTML = DoctorLayout();
+            } else if (userRole === 'receptionist') {
+                app.innerHTML = ReceptionistLayout();
             } else {
                 app.innerHTML = PatientLayout();
             }

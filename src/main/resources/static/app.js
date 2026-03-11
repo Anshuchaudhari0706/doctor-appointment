@@ -17,6 +17,9 @@ const savedUser = localStorage.getItem('user');
 if (savedUser) {
     try {
         state.user = JSON.parse(savedUser);
+        if (state.user && state.user.role) {
+            state.user.role = state.user.role.toLowerCase();
+        }
         state.route = 'dashboard';
         const savedTab = localStorage.getItem('activeTab');
         if (savedTab) {
@@ -409,7 +412,7 @@ async function login(e) {
             state.user = {
                 name: data.name,
                 email: data.email,
-                role: data.role,
+                role: data.role ? data.role.toLowerCase() : 'patient',
                 doctorId: data.doctorId,
                 avatar: data.name ? data.name.substring(0, 2).toUpperCase() : 'US'
             };
@@ -2039,10 +2042,13 @@ function render() {
             }
 
             // ROUTE TO CORRECT LAYOUT RESTRICTED BY ROLE
-            if (state.user.role === 'admin') {
+            const userRole = state.user.role ? state.user.role.toLowerCase() : 'patient';
+            if (userRole === 'admin') {
                 app.innerHTML = AdminLayout();
-            } else if (state.user.role === 'doctor') {
+            } else if (userRole === 'doctor') {
                 app.innerHTML = DoctorLayout();
+            } else if (userRole === 'receptionist') {
+                app.innerHTML = ReceptionistLayout();
             } else {
                 app.innerHTML = PatientLayout();
             }
@@ -2111,7 +2117,7 @@ const DoctorReceptionists = () => `
 
 async function fetchAdminDoctors() {
     try {
-        const res = await fetch(`${API_BASE} /admin/doctors`);
+        const res = await fetch(`${API_BASE}/admin/doctors`);
         state.adminDoctors = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2119,7 +2125,7 @@ async function fetchAdminDoctors() {
 
 async function fetchAdminPatients() {
     try {
-        const res = await fetch(`${API_BASE} /admin/patients`);
+        const res = await fetch(`${API_BASE}/admin/patients`);
         state.adminPatients = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2127,7 +2133,7 @@ async function fetchAdminPatients() {
 
 async function fetchAdminReceptionists() {
     try {
-        const res = await fetch(`${API_BASE} /admin/receptionists`);
+        const res = await fetch(`${API_BASE}/admin/receptionists`);
         state.adminReceptionists = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2135,7 +2141,7 @@ async function fetchAdminReceptionists() {
 
 async function fetchAdminAppointments() {
     try {
-        const res = await fetch(`${API_BASE} /admin/appointments`);
+        const res = await fetch(`${API_BASE}/admin/appointments`);
         state.adminAppointments = await res.json();
         render();
     } catch (e) { console.error(e); }
@@ -2144,7 +2150,7 @@ async function fetchAdminAppointments() {
 async function deleteAdminDoctor(id) {
     if (!confirm('Delete this doctor?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/doctors / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/doctors/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminDoctors();
     } catch (e) { console.error(e); }
 }
@@ -2152,7 +2158,7 @@ async function deleteAdminDoctor(id) {
 async function deleteAdminPatient(id) {
     if (!confirm('Delete this patient?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/patients / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/patients/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminPatients();
     } catch (e) { console.error(e); }
 }
@@ -2160,7 +2166,7 @@ async function deleteAdminPatient(id) {
 async function deleteAdminReceptionist(id) {
     if (!confirm('Delete this receptionist?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/receptionists / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/receptionists/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminReceptionists();
     } catch (e) { console.error(e); }
 }
@@ -2168,7 +2174,7 @@ async function deleteAdminReceptionist(id) {
 async function deleteAdminAppointment(id) {
     if (!confirm('Delete this appointment?')) return;
     try {
-        const res = await fetch(`${API_BASE} /admin/appointments / ${id} `, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/appointments/${id}`, { method: 'DELETE' });
         if (res.ok) fetchAdminAppointments();
     } catch (e) { console.error(e); }
 }
