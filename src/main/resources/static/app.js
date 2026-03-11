@@ -1992,12 +1992,12 @@ const TabSupport = () => `
     <div class="card" style="height: 600px; display: flex; flex-direction: column;">
         <div style="border-bottom:1px solid var(--border); padding-bottom:1rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:0.5rem;">
-                <div style="width:40px;height:40px;background:#10a37f;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;">
-                    <i class="fas fa-robot"></i>
+                <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white; box-shadow:0 0 10px var(--accent);">
+                    <i class="fas fa-brain"></i>
                 </div>
                 <div>
-                    <h3 style="margin:0;">Medical AI Assistant</h3>
-                    <div style="font-size:0.8rem;color:var(--success);">● Powered by ChatGPT</div>
+                    <h3 style="margin:0;">MedDeep AI</h3>
+                    <div style="font-size:0.8rem;color:var(--success);">● Clinical Decision Support</div>
                 </div>
             </div>
             <button class="btn btn-sm btn-secondary" onclick="clearChat()">Clear Chat</button>
@@ -2016,8 +2016,13 @@ const TabSupport = () => `
             `).join('')}
             ${(!state.chatHistory || state.chatHistory.length === 0) ? `
                 <div style="text-align:center; color:var(--text-secondary); margin-top:2rem;">
-                    <p>👋 Hello! I am your AI Medical Assistant.</p>
-                    <p>You can ask me about general health tips, appointment definitions, or how to use this portal.</p>
+                    <p>👋 Hello! I am <strong>MedDeep AI</strong>.</p>
+                    <p>I am a clinical decision support tool capable of retrieving medical knowledge, analyzing symptoms, and generating advanced health insights.</p>
+                    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; margin-top:1rem;">
+                        <span class="badge" style="background:var(--surface); border:1px solid var(--border); color:var(--text-secondary);">Differential Diagnosis</span>
+                        <span class="badge" style="background:var(--surface); border:1px solid var(--border); color:var(--text-secondary);">Research Citations</span>
+                        <span class="badge" style="background:var(--surface); border:1px solid var(--border); color:var(--text-secondary);">Drug Interactions</span>
+                    </div>
                 </div>
             ` : ''}
         </div>
@@ -2226,32 +2231,28 @@ async function sendChatMessage() {
     if (historyContainer) historyContainer.scrollTop = historyContainer.scrollHeight;
 
     // Simulate AI Thinking
-    // In a real app, this would be: const response = await fetch('/api/chat', ...);
+    // In a real app, this would be: const response = await fetch('/api/meddeep', ...);
 
     // Simulate Delay
     await new Promise(r => setTimeout(r, 1000));
 
-    let aiResponse = "I am a simulated AI Assistant. To connect me to real ChatGPT, please configure the Backend API Key. For now, I can tell you that staying hydrated is important!";
+    let aiResponse = "I am a simulated MedDeep AI. To connect me to the actual medical APIs, please configure the Backend environment variables. However, as an advanced clinical support tool, I can provide simulated insights!";
 
     const lowerMsg = message.toLowerCase();
     
-    // AI Chatbot Logic enhancement
+    // MedDeep AI Chatbot Logic enhancement
     if (lowerMsg.includes('headache') || lowerMsg.includes('migraine')) {
-        aiResponse = "I am an AI, not a doctor. However, severe or persistent headaches might require a neurologist or general physician. You can find one in the 'Book Appointment' section.";
+        aiResponse = "<strong>MedDeep Analysis:</strong><br><br>📝 <strong>Differentials:</strong> Primary headache disorders (Tension-type, Migraine), Secondary (Sinusitis, Medication Overuse).<br>⚠️ <strong>Red Flags (SNOOP):</strong> Systemic symptoms, Neurologic symptoms, Onset sudden, Older age, Pattern change.<br><br><em>Note: Recommend booking a Neurologist.</em>";
     } else if (lowerMsg.includes('skin') || lowerMsg.includes('rash') || lowerMsg.includes('acne')) {
-        aiResponse = "For skin conditions, you should consult a Dermatologist. You can search for one in the 'Book Appointment' tab.";
+        aiResponse = "<strong>MedDeep Guideline Search:</strong><br><br>For skin conditions, first-line treatments often include topical therapies (e.g., Retinoids, Benzoyl Peroxide). For specific lesions or persistent rashes, clinical evaluation is required. You can search for a Dermatologist in the 'Book Appointment' tab.";
     } else if (lowerMsg.includes('heart') || lowerMsg.includes('chest pain')) {
-        aiResponse = "⚠️ IMPORTANT: Chest pain could be a medical emergency. Please visit an emergency room immediately or call an ambulance. For a routine checkup, search for a Cardiologist.";
-    } else if (lowerMsg.includes('appointment')) {
-        aiResponse = "You can book an appointment by clicking on the 'Book Appointment' tab in the sidebar. We support both In-Person and Video Consultations.";
-    } else if (lowerMsg.includes('doctor')) {
-        aiResponse = "We have several specialists available. Check the 'Nearby Hospitals' or 'Book Appointment' section to view their profiles.";
-    } else if (lowerMsg.includes('report') || lowerMsg.includes('result') || lowerMsg.includes('prescription')) {
-        aiResponse = "You can view your Medical Reports and Download official prescription PDFs from the 'My Bookings' and 'Medical Reports' tabs once your doctor uploads them.";
+        aiResponse = "🚨 <strong>URGENT MEDICAL ALERT:</strong> Chest pain can be an indicator of Acute Coronary Syndrome (ACS) or Myocardial Infarction.<br><br><strong>Action:</strong> Immediately route to the nearest Emergency Room. Do not use telehealth for acute chest pain.";
+    } else if (lowerMsg.includes('drug') || lowerMsg.includes('interaction')) {
+        aiResponse = "<strong>MedDeep Pharmacokinetics:</strong><br><br>Please provide the specific list of medications. I can cross-reference PubMed and FDA databases for contraindications, QT prolongation risks, or CYP450 enzyme interactions.";
     } else if (lowerMsg.includes('hello') || lowerMsg.includes('hi')) {
-        aiResponse = "Hello! I am your AI Health Assistant. I can help recommend specialists based on symptoms or guide you around the app! What's on your mind?";
+        aiResponse = "Hello. I am MedDeep AI, your clinical decision support and health analysis tool. How can I assist you in analyzing symptoms or retrieving medical knowledge today?";
     } else {
-        aiResponse = "That's a great question. You can ask me about symptoms like 'skin rash' or 'headache' to get specialist recommendations. Keep in mind I'm an AI and not a substitute for professional medical care.";
+        aiResponse = "Based on your clinical query, I recommend providing more context. MedDeep AI can process specific diagnostic inquiries, drug interactions, or search recent medical literature guidelines (e.g., 'What are the differentials for acute chest pain?').<br><br><em>*Disclaimer: This is a decision support tool, not a replacement for physician judgment.</em>";
     }
 
     // Add AI Response
