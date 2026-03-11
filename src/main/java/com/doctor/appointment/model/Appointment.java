@@ -18,6 +18,12 @@ public class Appointment {
     private String reason;
     private String type; // General, Specialist, etc.
     private String paymentMode; // Cash, UPI, Online
+    
+    // New fields for extended features
+    private String meetingLink; // For Telemedicine
+    private Integer rating; // 1 to 5
+    private String review; // Patient rating text
+    private String prescription; // Digital prescription base64 or text
 
     public Appointment() {
         this.status = "PENDING";
@@ -118,5 +124,37 @@ public class Appointment {
 
     public void setDoctorEmail(String doctorEmail) {
         this.doctorEmail = doctorEmail;
+    }
+
+    public String getMeetingLink() {
+        return meetingLink;
+    }
+
+    public void setMeetingLink(String meetingLink) {
+        this.meetingLink = meetingLink;
+    }
+
+    public Integer getRating() {
+        return rating;
+    }
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
+    }
+
+    public String getReview() {
+        return review;
+    }
+
+    public void setReview(String review) {
+        this.review = review;
+    }
+
+    public String getPrescription() {
+        return prescription;
+    }
+
+    public void setPrescription(String prescription) {
+        this.prescription = prescription;
     }
 }

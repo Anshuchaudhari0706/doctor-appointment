@@ -9,8 +9,15 @@ const state = {
     selectedRole: 'patient',
     doctors: [],
     appointments: [],
-    reports: []
+    reports: [],
+    lightMode: false
 };
+
+// Check light mode
+if (localStorage.getItem('lightMode') === 'true') {
+    state.lightMode = true;
+    document.body.classList.add('light-mode');
+}
 
 // Check for saved user session
 const savedUser = localStorage.getItem('user');
@@ -146,8 +153,23 @@ async function fetchDoctorAppointments() {
 
 async function updateAppointmentStatus(id, status) {
     if (!confirm(`Change status to ${status}?`)) return;
+    
+    let details = { status: status };
+    if (status === 'ACCEPTED') {
+        const link = prompt("Provide an Online Meeting Link? (Leave blank for In-Person)");
+        if (link) details.meetingLink = link;
+    }
+    if (status === 'COMPLETED') {
+        const pre = prompt("Would you like to write a short digital prescription? (Leave blank if not needed)");
+        if (pre) details.prescription = pre;
+    }
+
     try {
-        const res = await fetch(`${API_BASE}/appointments/${id}/status?status=${status}`, { method: 'PUT' });
+        const res = await fetch(`${API_BASE}/appointments/${id}/details`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(details)
+        });
         if (res.ok) {
             alert('Status Updated');
             fetchDoctorAppointments();
@@ -359,6 +381,10 @@ async function bookAppointmentBackend(docId, docName, docEmail) {
     const time = prompt("Enter Time (HH:MM):", "10:00 AM");
     if (!time) return;
 
+    let type = prompt("Type of Visit:\n1. In-Person\n2. Video Consultation", "1");
+    if (type === "2") type = "Video Consultation";
+    else type = "In-Person";
+
     // 2. Booking - No Payment yet
     try {
         const res = await fetch(`${API_BASE}/appointments/book`, {
@@ -372,7 +398,7 @@ async function bookAppointmentBackend(docId, docName, docEmail) {
                 doctorEmail: docEmail,
                 date: date,
                 time: time,
-                type: 'General',
+                type: type,
                 paymentMode: null,
                 status: 'PENDING'
             })
@@ -756,11 +782,17 @@ const PatientLayout = () => `
                     <h1>Hello, ${state.user.name} 👋</h1>
                     <p class="text-muted">Here's your health overview</p>
                 </div>
-                <div class="user-profile-widget">
-                    <div class="avatar">${state.user.avatar}</div>
-                    <div>
-                        <div style="font-weight:600;font-size:0.9rem;">${state.user.name}</div>
-                        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:capitalize;">Patient</div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <div style="position:relative; cursor:pointer;" onclick="setTab('bookings')">
+                        <i class="fas fa-bell" style="font-size:1.2rem;color:var(--text-secondary);"></i>
+                        ${state.appointments.some(a=>a.status==='ACCEPTED') ? '<span style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:var(--danger);border-radius:50%;"></span>' : ''}
+                    </div>
+                    <div class="user-profile-widget">
+                        <div class="avatar">${state.user.avatar}</div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;">${state.user.name}</div>
+                            <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:capitalize;">Patient</div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -778,11 +810,17 @@ const DoctorLayout = () => `
                     <h1>Dr. ${state.user.name} 👋</h1>
                     <p class="text-muted">Have a great working day!</p>
                 </div>
-                <div class="user-profile-widget" style="border-color: var(--accent);">
-                    <div class="avatar" style="background: var(--accent);">${state.user.avatar}</div>
-                    <div>
-                        <div style="font-weight:600;font-size:0.9rem;">Dr. ${state.user.name}</div>
-                        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:capitalize;">Specialist</div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <div style="position:relative; cursor:pointer;" onclick="setTab('appointments')">
+                        <i class="fas fa-bell" style="font-size:1.2rem;color:var(--text-secondary);"></i>
+                        ${state.appointments.some(a=>a.status==='PENDING') ? '<span style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:var(--danger);border-radius:50%;"></span>' : ''}
+                    </div>
+                    <div class="user-profile-widget" style="border-color: var(--accent);">
+                        <div class="avatar" style="background: var(--accent);">${state.user.avatar}</div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem;">Dr. ${state.user.name}</div>
+                            <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:capitalize;">Specialist</div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -1624,12 +1662,42 @@ const TabBookings = () => `
                         ${apt.status === 'ACCEPTED' ? `
                             <button class="btn btn-primary btn-sm" onclick="payForAppointment('${apt.id}')">Pay Now (INR)</button>
                         ` : ''}
+                        ${apt.meetingLink && apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED' ? `
+                            <a href="${apt.meetingLink}" target="_blank" class="btn btn-success btn-sm"><i class="fas fa-video"></i> Join Video Call</a>
+                        ` : ''}
+                        ${apt.status === 'COMPLETED' && apt.prescription ? `
+                            <button class="btn btn-secondary btn-sm" onclick="alert('Digital Prescription:\\n\\n${apt.prescription}')"><i class="fas fa-file-medical"></i> View Prescription</button>
+                        ` : ''}
+                        ${apt.status === 'COMPLETED' && !apt.rating ? `
+                            <button class="btn btn-ghost btn-sm" onclick="rateDoctor('${apt.id}')"><i class="fas fa-star"></i> Rate</button>
+                        ` : ''}
+                        ${apt.rating ? `<span style="color:#f59e0b; font-size:0.8rem;"><i class="fas fa-star"></i> ${apt.rating}/5</span>` : ''}
                     </div>
                 </div>
             `).join('')}
         </div>
     </div>
 `;
+
+window.rateDoctor = async function(appId) {
+    const r = prompt("Rate the doctor from 1 to 5:");
+    if (!r) return;
+    const rating = parseInt(r);
+    if (isNaN(rating) || rating < 1 || rating > 5) return alert('Invalid rating');
+    const rev = prompt("Leave a brief review (Optional):");
+
+    try {
+        const res = await fetch(`${API_BASE}/appointments/${appId}/details`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating: rating, review: rev || '' })
+        });
+        if (res.ok) {
+            alert('Thank you for your feedback!');
+            fetchAppointments();
+        }
+    } catch (e) { console.error(e); }
+}
 
 const TabBookNew = () => {
     const query = (state.bookingSearchQuery || '').toLowerCase();
@@ -1868,7 +1936,30 @@ const TabSupport = () => `
     </div>
 `;
 
-const TabSettings = () => `<div class="card"><h3>Settings</h3><p>App preferences.</p></div>`;
+const TabSettings = () => `
+    <div class="card" style="max-width:600px; margin:0 auto;">
+        <h3>App Settings</h3>
+        <p class="text-muted mb-4">Manage your application preferences.</p>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border:1px solid var(--border); border-radius:12px; margin-bottom:1rem;">
+            <div>
+                <div style="font-weight:600;font-size:1.1rem;"><i class="fas ${state.lightMode ? 'fa-sun' : 'fa-moon'}"></i> Theme Mode</div>
+                <div class="text-sm text-muted">Switch between dark and light themes</div>
+            </div>
+            <button class="btn btn-secondary" onclick="toggleTheme()">
+                ${state.lightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            </button>
+        </div>
+    </div>
+`;
+
+window.toggleTheme = function() {
+    state.lightMode = !state.lightMode;
+    localStorage.setItem('lightMode', state.lightMode);
+    if(state.lightMode) document.body.classList.add('light-mode');
+    else document.body.classList.remove('light-mode');
+    render();
+}
 
 
 
@@ -2059,6 +2150,7 @@ function render() {
             } else {
                 app.innerHTML = PatientLayout();
             }
+            if (userRole === 'admin') window.renderAdminCharts();
             break;
     }
 
@@ -2225,8 +2317,64 @@ const AdminDashboardHome = () => {
             </div>
         </div>
     </div>
+    <div class="grid-cols-2 mt-4">
+        <div class="card">
+            <div class="card-header"><div class="card-title">Daily Appointments</div></div>
+            <canvas id="appointmentsChart" width="400" height="200"></canvas>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">Doctors by Specialization</div></div>
+            <canvas id="specialtiesChart" width="400" height="200"></canvas>
+        </div>
+    </div>
         `;
 };
+
+window.renderAdminCharts = function() {
+    // Wait for canvas to be in DOM
+    setTimeout(() => {
+        const aptCtx = document.getElementById('appointmentsChart');
+        const specCtx = document.getElementById('specialtiesChart');
+        if (!aptCtx || !specCtx) return;
+
+        // Appointments data
+        const aptData = (state.adminAppointments || []).reduce((acc, curr) => {
+            acc[curr.date] = (acc[curr.date] || 0) + 1;
+            return acc;
+        }, {});
+        
+        new Chart(aptCtx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(aptData),
+                datasets: [{
+                    label: 'Appointments',
+                    data: Object.values(aptData),
+                    borderColor: '#4361ee',
+                    tension: 0.1
+                }]
+            }
+        });
+
+        // Specialties data
+        const specData = (state.adminDoctors || []).reduce((acc, curr) => {
+            const spec = curr.specialization || 'General';
+            acc[spec] = (acc[spec] || 0) + 1;
+            return acc;
+        }, {});
+
+        new Chart(specCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(specData),
+                datasets: [{
+                    data: Object.values(specData),
+                    backgroundColor: ['#4cc9f0', '#4361ee', '#7209b7', '#10b981', '#f59e0b']
+                }]
+            }
+        });
+    }, 100);
+}
 
 const AdminManageDoctors = () => `
         <div class="card">

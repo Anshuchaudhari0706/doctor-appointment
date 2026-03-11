@@ -16,7 +16,26 @@
     --z-input: 100;
 }
 
+body.light-mode {
+    --primary: #4cc9f0;
+    --secondary: #4361ee;
+    --accent: #7209b7;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-glass: rgba(255, 255, 255, 0.8);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border: #e2e8f0;
+    --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
 * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;

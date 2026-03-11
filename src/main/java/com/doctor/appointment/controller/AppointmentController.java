@@ -60,4 +60,15 @@ public class AppointmentController {
         apt.setPaymentMode(paymentMode);
         return appointmentRepository.save(apt);
     }
+
+    @PutMapping("/{id}/details")
+    public Appointment updateDetails(@PathVariable String id, @RequestBody Appointment details) {
+        Appointment apt = appointmentRepository.findById(id).orElseThrow();
+        if (details.getMeetingLink() != null) apt.setMeetingLink(details.getMeetingLink());
+        if (details.getPrescription() != null) apt.setPrescription(details.getPrescription());
+        if (details.getRating() != null) apt.setRating(details.getRating());
+        if (details.getReview() != null) apt.setReview(details.getReview());
+        if (details.getStatus() != null) apt.setStatus(details.getStatus());
+        return appointmentRepository.save(apt);
+    }
 }
