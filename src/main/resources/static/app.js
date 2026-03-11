@@ -10,8 +10,24 @@ const state = {
     doctors: [],
     appointments: [],
     reports: [],
-    lightMode: false
+    lightMode: false,
+    lang: 'en'
 };
+
+const i18n = {
+    en: { Dashboard: 'Dashboard', Profile: 'Profile', 'Medical Reports': 'Medical Reports', Bookings: 'My Bookings', Nearby: 'Nearby Hospitals', Book: 'Book Appointment', Timeline: 'Health Timeline', Support: 'Support', Settings: 'Settings', Payments: 'Payments', Calendar: 'Calendar' },
+    hi: { Dashboard: 'डैशबोर्ड', Profile: 'प्रोफ़ाइल', 'Medical Reports': 'मेडिकल रिपोर्ट', Bookings: 'बुकिंग', Nearby: 'अस्पताल', Book: 'अपॉइंटमेंट बुक करें', Timeline: 'स्वास्थ्य टाइमलाइन', Support: 'सहायता', Settings: 'सेटिंग्स', Payments: 'भुगतान', Calendar: 'कैलेंडर' },
+    es: { Dashboard: 'Panel', Profile: 'Perfil', 'Medical Reports': 'Informes Médicos', Bookings: 'Mis Reservas', Nearby: 'Hospitales Cercanos', Book: 'Reservar Cita', Timeline: 'Línea de Vida', Support: 'Soporte', Settings: 'Ajustes', Payments: 'Pagos', Calendar: 'Calendario' }
+};
+
+function t(key) {
+    if(!i18n[state.lang] || !i18n[state.lang][key]) return key;
+    return i18n[state.lang][key];
+}
+
+if (localStorage.getItem('lang')) {
+    state.lang = localStorage.getItem('lang');
+}
 
 // Check light mode
 if (localStorage.getItem('lightMode') === 'true') {
@@ -82,6 +98,7 @@ function setTab(tab) {
     }
     if (tab === 'book-new') fetchDoctors();
     if (tab === 'bookings') fetchAppointments();
+    if (tab === 'timeline') fetchAppointments(); // Fetch state for timeline
     if (tab === 'appointments') {
         if (role === 'admin') fetchAdminAppointments();
         else if (role === 'doctor' || role === 'receptionist') fetchDoctorAppointments();
@@ -560,16 +577,17 @@ const PatientNavbar = () => `
             <div class="logo-text">MediCare</div>
         </div>
         <div class="nav-links">
-            ${navItem('dashboard', 'fas fa-th-large', 'Dashboard')}
-            ${navItem('profile', 'fas fa-user', 'Profile')}
-            ${navItem('reports', 'fas fa-file-medical', 'Medical Reports')}
-            ${navItem('bookings', 'fas fa-calendar-check', 'My Bookings')}
-            ${navItem('nearby', 'fas fa-map-marker-alt', 'Nearby Hospitals')}
-            ${navItem('book-new', 'fas fa-plus-circle', 'Book Appointment')}
-            ${navItem('calendar', 'fas fa-calendar-alt', 'Calendar')}
-            ${navItem('payment', 'fas fa-credit-card', 'Payments')}
-            ${navItem('support', 'fas fa-headset', 'Support')}
-            ${navItem('settings', 'fas fa-cog', 'Settings')}
+            ${navItem('dashboard', 'fas fa-th-large', t('Dashboard'))}
+            ${navItem('timeline', 'fas fa-stream', t('Timeline'))}
+            ${navItem('profile', 'fas fa-user', t('Profile'))}
+            ${navItem('reports', 'fas fa-file-medical', t('Medical Reports'))}
+            ${navItem('bookings', 'fas fa-calendar-check', t('Bookings'))}
+            ${navItem('nearby', 'fas fa-map-marker-alt', t('Nearby'))}
+            ${navItem('book-new', 'fas fa-plus-circle', t('Book'))}
+            ${navItem('calendar', 'fas fa-calendar-alt', t('Calendar'))}
+            ${navItem('payment', 'fas fa-credit-card', t('Payments'))}
+            ${navItem('support', 'fas fa-headset', t('Support'))}
+            ${navItem('settings', 'fas fa-cog', t('Settings'))}
         </div>
         <div class="mt-auto">
             <div class="nav-item" onclick="logout()">
@@ -887,6 +905,7 @@ function renderPatientTabs() {
     switch (state.activeTab) {
         case 'dashboard': return TabDashboard();
         case 'profile': return TabProfile();
+        case 'timeline': return TabTimeline();
         case 'reports': return TabReports();
         case 'bookings': return TabBookings();
         case 'book-new': return TabBookNew();
@@ -971,7 +990,12 @@ const DoctorDashboardHome = () => {
         </div>
     </div>
 
-    <div class="card">
+    <div class="card mt-4">
+        <div class="card-header"><div class="card-title">Earnings (Revenue Pipeline)</div></div>
+        <canvas id="doctorRevenueChart" width="400" height="150"></canvas>
+    </div>
+
+    <div class="card mt-4">
         <h3>Quick Actions</h3>
         <div style="display:flex; gap:1rem; margin-top:1rem;">
             <button class="btn btn-primary" onclick="setTab('my-schedule')">Update Availability</button>
@@ -980,6 +1004,37 @@ const DoctorDashboardHome = () => {
     </div>
     `;
 };
+
+window.renderDoctorCharts = function() {
+    setTimeout(() => {
+        const revCtx = document.getElementById('doctorRevenueChart');
+        if (!revCtx) return;
+
+        const myApts = state.appointments || [];
+        const fee = state.doctorProfile?.consultationFee || 500;
+        
+        // Group by date
+        const revData = myApts.reduce((acc, curr) => {
+            if(curr.status === 'COMPLETED' || curr.status === 'CONFIRMED' || curr.status === 'ACCEPTED') {
+                if(curr.date) acc[curr.date] = (acc[curr.date] || 0) + Number(fee);
+            }
+            return acc;
+        }, {});
+        
+        new Chart(revCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(revData).length ? Object.keys(revData) : ['No Data'],
+                datasets: [{
+                    label: 'Earnings (₹)',
+                    data: Object.values(revData).length ? Object.values(revData) : [0],
+                    backgroundColor: '#10b981',
+                    borderRadius: 4
+                }]
+            }
+        });
+    }, 100);
+}
 
 const DoctorSchedule = () => `
     <div class="card" style="max-width:800px; margin:0 auto;">
@@ -1174,12 +1229,19 @@ const TabNearbyHospitals = () => `
 
 window.findNearbyHospitals = function () {
     const resultsDiv = document.getElementById('nearby-results');
-    resultsDiv.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Locating...</p>';
+    resultsDiv.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="skeleton skeleton-box"></div>
+            <div class="skeleton skeleton-box"></div>
+            <div class="skeleton skeleton-box"></div>
+        </div>
+    `;
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const userLat = position.coords.latitude;
+                setTimeout(() => {
+                    const userLat = position.coords.latitude;
                 const userLong = position.coords.longitude;
 
                 // Filter Doctors
@@ -1225,6 +1287,7 @@ window.findNearbyHospitals = function () {
                         </div>
                     `;
                 }
+                }, 800); // Simulated skeleton delay
             },
             (error) => {
                 resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}. Please enable location access.</div>`;
@@ -1666,7 +1729,7 @@ const TabBookings = () => `
                             <a href="${apt.meetingLink}" target="_blank" class="btn btn-success btn-sm"><i class="fas fa-video"></i> Join Video Call</a>
                         ` : ''}
                         ${apt.status === 'COMPLETED' && apt.prescription ? `
-                            <button class="btn btn-secondary btn-sm" onclick="alert('Digital Prescription:\\n\\n${apt.prescription}')"><i class="fas fa-file-medical"></i> View Prescription</button>
+                            <button class="btn btn-secondary btn-sm" onclick="downloadPDF('Prescription - ${apt.doctorName}', '${apt.prescription.replace(/'/g, "\\'")}')"><i class="fas fa-file-pdf"></i> Download PDF</button>
                         ` : ''}
                         ${apt.status === 'COMPLETED' && !apt.rating ? `
                             <button class="btn btn-ghost btn-sm" onclick="rateDoctor('${apt.id}')"><i class="fas fa-star"></i> Rate</button>
@@ -1698,6 +1761,55 @@ window.rateDoctor = async function(appId) {
         }
     } catch (e) { console.error(e); }
 }
+
+window.downloadPDF = function(title, content) {
+    if (!window.jspdf) return alert('PDF library is still loading...');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("MediCare Official Document", 20, 20);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text(title, 20, 40);
+    doc.setFontSize(12);
+    const lines = doc.splitTextToSize(content || '', 170);
+    doc.text(lines, 20, 50);
+    doc.save(title.replace(/\\s+/g, "_") + ".pdf");
+};
+
+const TabTimeline = () => {
+    let events = [];
+    state.appointments.forEach(a => {
+        if(a.date) events.push({ date: new Date(a.date), type: 'Appointment', text: `Appointment with Dr. ${a.doctorName} (${a.status})`, icon: 'fas fa-stethoscope' });
+        if(a.prescription && a.date) events.push({ date: new Date(a.date), type: 'Prescription', text: `Digital Prescription issued by Dr. ${a.doctorName}`, icon: 'fas fa-pills' });
+    });
+    state.reports.forEach(r => {
+        if(r.date) events.push({ date: new Date(r.date), type: 'Medical Report', text: `Report uploaded: ${r.title}`, icon: 'fas fa-file-medical-alt' });
+    });
+    events.sort((a,b) => b.date - a.date);
+
+    return `
+    <div class="card" style="max-width:600px; margin:0 auto;">
+        <div class="card-header"><div class="card-title">Interactive Health Timeline</div></div>
+        <p class="text-muted mb-4">A complete history of your medical journey.</p>
+        <div class="timeline">
+            ${events.length === 0 ? '<p class="text-muted">No health history found.</p>' : ''}
+            ${events.map(e => `
+                <div class="timeline-item">
+                    <div class="timeline-date">${e.date.toDateString()}</div>
+                    <div class="timeline-content">
+                        <div style="font-weight:600;display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+                            <i class="${e.icon}" style="color:var(--primary);"></i> ${e.type}
+                        </div>
+                        <div class="text-sm text-muted">${e.text}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+    `;
+};
 
 const TabBookNew = () => {
     const query = (state.bookingSearchQuery || '').toLowerCase();
@@ -1950,8 +2062,27 @@ const TabSettings = () => `
                 ${state.lightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             </button>
         </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border:1px solid var(--border); border-radius:12px; margin-bottom:1rem;">
+            <div>
+                <div style="font-weight:600;font-size:1.1rem;"><i class="fas fa-language"></i> Language</div>
+                <div class="text-sm text-muted">Select your preferred language</div>
+            </div>
+            <select class="form-input" style="width: auto; padding: 0.5rem;" onchange="changeLanguage(this.value)">
+                <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
+                <option value="hi" ${state.lang === 'hi' ? 'selected' : ''}>Hindi</option>
+                <option value="es" ${state.lang === 'es' ? 'selected' : ''}>Spanish</option>
+            </select>
+        </div>
+        
     </div>
 `;
+
+window.changeLanguage = function(lang) {
+    state.lang = lang;
+    localStorage.setItem('lang', lang);
+    render();
+}
 
 window.toggleTheme = function() {
     state.lightMode = !state.lightMode;
@@ -2102,12 +2233,26 @@ async function sendChatMessage() {
 
     let aiResponse = "I am a simulated AI Assistant. To connect me to real ChatGPT, please configure the Backend API Key. For now, I can tell you that staying hydrated is important!";
 
-    // Simple mock logic for demo purposes
     const lowerMsg = message.toLowerCase();
-    if (lowerMsg.includes('appointment')) aiResponse = "You can book an appointment by clicking on the 'Book Appointment' tab in the sidebar.";
-    if (lowerMsg.includes('doctor')) aiResponse = "We have several specialists available. Check the 'Doctors' section to view their profiles.";
-    if (lowerMsg.includes('report') || lowerMsg.includes('result')) aiResponse = "Medical reports are available in the 'Medical Reports' tab once your doctor uploads them.";
-    if (lowerMsg.includes('hello') || lowerMsg.includes('hi')) aiResponse = "Hello! How can I assist you with your health today?";
+    
+    // AI Chatbot Logic enhancement
+    if (lowerMsg.includes('headache') || lowerMsg.includes('migraine')) {
+        aiResponse = "I am an AI, not a doctor. However, severe or persistent headaches might require a neurologist or general physician. You can find one in the 'Book Appointment' section.";
+    } else if (lowerMsg.includes('skin') || lowerMsg.includes('rash') || lowerMsg.includes('acne')) {
+        aiResponse = "For skin conditions, you should consult a Dermatologist. You can search for one in the 'Book Appointment' tab.";
+    } else if (lowerMsg.includes('heart') || lowerMsg.includes('chest pain')) {
+        aiResponse = "⚠️ IMPORTANT: Chest pain could be a medical emergency. Please visit an emergency room immediately or call an ambulance. For a routine checkup, search for a Cardiologist.";
+    } else if (lowerMsg.includes('appointment')) {
+        aiResponse = "You can book an appointment by clicking on the 'Book Appointment' tab in the sidebar. We support both In-Person and Video Consultations.";
+    } else if (lowerMsg.includes('doctor')) {
+        aiResponse = "We have several specialists available. Check the 'Nearby Hospitals' or 'Book Appointment' section to view their profiles.";
+    } else if (lowerMsg.includes('report') || lowerMsg.includes('result') || lowerMsg.includes('prescription')) {
+        aiResponse = "You can view your Medical Reports and Download official prescription PDFs from the 'My Bookings' and 'Medical Reports' tabs once your doctor uploads them.";
+    } else if (lowerMsg.includes('hello') || lowerMsg.includes('hi')) {
+        aiResponse = "Hello! I am your AI Health Assistant. I can help recommend specialists based on symptoms or guide you around the app! What's on your mind?";
+    } else {
+        aiResponse = "That's a great question. You can ask me about symptoms like 'skin rash' or 'headache' to get specialist recommendations. Keep in mind I'm an AI and not a substitute for professional medical care.";
+    }
 
     // Add AI Response
     state.chatHistory.push({ role: 'assistant', content: aiResponse });
@@ -2151,6 +2296,7 @@ function render() {
                 app.innerHTML = PatientLayout();
             }
             if (userRole === 'admin') window.renderAdminCharts();
+            if (userRole === 'doctor') window.renderDoctorCharts();
             break;
     }
 
