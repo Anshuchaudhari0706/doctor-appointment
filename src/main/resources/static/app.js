@@ -990,10 +990,7 @@ const DoctorDashboardHome = () => {
         </div>
     </div>
 
-    <div class="card mt-4">
-        <div class="card-header"><div class="card-title">Earnings (Revenue Pipeline)</div></div>
-        <canvas id="doctorRevenueChart" width="400" height="150"></canvas>
-    </div>
+
 
     <div class="card mt-4">
         <h3>Quick Actions</h3>
@@ -1005,36 +1002,7 @@ const DoctorDashboardHome = () => {
     `;
 };
 
-window.renderDoctorCharts = function() {
-    setTimeout(() => {
-        const revCtx = document.getElementById('doctorRevenueChart');
-        if (!revCtx) return;
 
-        const myApts = state.appointments || [];
-        const fee = state.doctorProfile?.consultationFee || 500;
-        
-        // Group by date
-        const revData = myApts.reduce((acc, curr) => {
-            if(curr.status === 'COMPLETED' || curr.status === 'CONFIRMED' || curr.status === 'ACCEPTED') {
-                if(curr.date) acc[curr.date] = (acc[curr.date] || 0) + Number(fee);
-            }
-            return acc;
-        }, {});
-        
-        new Chart(revCtx, {
-            type: 'bar',
-            data: {
-                labels: Object.keys(revData).length ? Object.keys(revData) : ['No Data'],
-                datasets: [{
-                    label: 'Earnings (₹)',
-                    data: Object.values(revData).length ? Object.values(revData) : [0],
-                    backgroundColor: '#10b981',
-                    borderRadius: 4
-                }]
-            }
-        });
-    }, 100);
-}
 
 const DoctorSchedule = () => `
     <div class="card" style="max-width:800px; margin:0 auto;">
@@ -2333,7 +2301,7 @@ function render() {
                 app.innerHTML = PatientLayout();
             }
             if (userRole === 'admin') window.renderAdminCharts();
-            if (userRole === 'doctor') window.renderDoctorCharts();
+
             break;
     }
 
