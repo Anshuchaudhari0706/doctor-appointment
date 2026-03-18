@@ -11,6 +11,7 @@ const state = {
     appointments: [],
     reports: [],
     beds: [],
+    bloodRequests: [],
     lightMode: false,
     lang: 'en'
 };
@@ -116,6 +117,7 @@ function setTab(tab) {
         if (tab === 'patients') fetchAdminPatients();
         if (tab === 'receptionists') fetchAdminReceptionists();
         if (tab === 'beds') fetchAdminBeds();
+        if (tab === 'blood-bank') fetchAdminBloodBank();
     }
 
     render();
@@ -505,12 +507,15 @@ async function register(e) {
             return;
         }
     }
+    
+    const bloodGroupElement = document.getElementById('reg-blood');
+    const bloodGroup = bloodGroupElement ? bloodGroupElement.value : '';
 
     try {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role: role, medicalLicenseNumber: medicalLicenseNumber })
+            body: JSON.stringify({ name, email, password, role: role, medicalLicenseNumber: medicalLicenseNumber, bloodGroup: bloodGroup })
         });
 
         if (!res.ok) {
@@ -641,6 +646,7 @@ const AdminNavbar = () => `
             ${navItem('receptionists', 'fas fa-user-nurse', 'Manage Receptionists')}
             ${navItem('appointments', 'fas fa-calendar-alt', 'All Appointments')}
             ${navItem('beds', 'fas fa-bed', 'Manage Beds')}
+            ${navItem('blood-bank', 'fas fa-tint', 'Blood Bank')}
             ${navItem('settings', 'fas fa-cog', 'System Settings')}
         </div>
         <div class="mt-auto">
@@ -774,6 +780,23 @@ const RegisterView = () => `
                     <label class="form-label">Password</label>
                     <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
                 </div>
+                
+                ${state.selectedRole === 'patient' || state.selectedRole === 'doctor' ? `
+                <div class="form-group">
+                    <label class="form-label">Blood Group</label>
+                    <select id="reg-blood" class="form-input">
+                        <option value="">Select Blood Group (Optional)</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+                ` : ''}
 
                 ${state.selectedRole === 'doctor' ? `
                 <div class="form-group fade-in" id="doc-code-group" style="background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; border:1px dashed var(--accent);">
@@ -954,6 +977,7 @@ function renderAdminTabs() {
         case 'receptionists': return AdminManageReceptionists();
         case 'appointments': return AdminManageAppointments();
         case 'beds': return AdminManageBeds();
+        case 'blood-bank': return AdminManageBloodBank();
         case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
@@ -2532,6 +2556,50 @@ async function deleteAdminBed(id) {
 
 // --- ADMIN COMPONENTS ---
 
+async function fetchAdminBloodBank() {
+    try {
+        const res = await fetch(`${API_BASE}/blood-bank`);
+        state.bloodRequests = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function fulfillBloodRequest(id) {
+    if(!confirm('Mark this blood request as fulfilled?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/blood-bank/${id}/fulfill`, { method: 'PUT' });
+        if(res.ok) fetchAdminBloodBank();
+    } catch(e) { console.error(e); }
+}
+
+async function requestEmergencyBlood(e) {
+    e.preventDefault();
+    const bg = document.getElementById('bb-group').value;
+    const units = document.getElementById('bb-units').value;
+    const urgency = document.getElementById('bb-urgency').value;
+    const btn = e.target.querySelector('button');
+    btn.innerHTML = "Broadcasting Emails...";
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch(`${API_BASE}/blood-bank/emergency`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bloodGroupRequired: bg, unitsRequired: parseInt(units), urgency: urgency })
+        });
+        if(res.ok) {
+            alert('Emergency Broadcast sent to all matching donors!');
+            fetchAdminBloodBank();
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to send broadcast.');
+    } finally {
+        btn.innerHTML = "Send Emergency Broadcast Emails";
+        btn.disabled = false;
+    }
+}
+
 const AdminDashboardHome = () => {
     const totalDoctors = (state.adminDoctors || []).length;
     const totalPatients = (state.adminPatients || []).length;
@@ -2762,6 +2830,63 @@ const AdminManageBeds = () => `
 `;
 
 // Init
+
+const AdminManageBloodBank = () => `
+    <div class="card">
+        <h3><i class="fas fa-tint" style="color:red;"></i> Blood Bank Control Center</h3>
+        <p class="text-muted mb-4">Request emergency blood and the system will automatically email matching donors.</p>
+        
+        <div style="background:rgba(239,68,68,0.05); padding:1.5rem; border-radius:8px; margin-bottom:2rem; border:1px solid rgba(239,68,68,0.3);">
+            <h4 style="color:var(--danger); margin-bottom:1rem;">Broadcast Emergency Blood Request</h4>
+            <form onsubmit="requestEmergencyBlood(event)" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1;">
+                    <label class="form-label">Blood Group Needed</label>
+                    <select id="bb-group" class="form-input" required>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label class="form-label">Units (Pints)</label>
+                    <input type="number" id="bb-units" class="form-input" placeholder="e.g. 5" min="1" required>
+                </div>
+                <div style="flex:1;">
+                    <label class="form-label">Urgency</label>
+                    <select id="bb-urgency" class="form-input" required>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical (Immediate)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="background:var(--danger); border:none;">Send Emergency Broadcast Emails</button>
+            </form>
+        </div>
+
+        <h4>Active Target Requests</h4>
+        <div style="display:flex;flex-direction:column;gap:1rem;margin-top:1rem;">
+            ${(state.bloodRequests || []).map(r => `
+                <div style="border:1px solid ${r.status === 'FULFILLED' ? '#10b981' : 'var(--danger)'}; border-radius:8px; padding:1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:bold; font-size:1.1rem; margin-bottom:0.25rem;">
+                            <i class="fas fa-tint" style="color:${r.status === 'FULFILLED' ? '#10b981' : 'var(--danger)'};"></i> ${r.unitsRequired} Units of ${r.bloodGroupRequired}
+                        </div>
+                        <div class="text-sm text-muted">Requested: ${r.requestedDate} | Urgency: <b style="color:var(--danger)">${r.urgency}</b></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:1rem;">
+                        <span style="font-weight:bold; color:${r.status === 'FULFILLED' ? '#10b981' : 'var(--danger)'};">${r.status}</span>
+                        ${r.status === 'PENDING' ? `<button class="btn btn-outline btn-sm" style="border-color:#10b981; color:#10b981;" onclick="fulfillBloodRequest('${r.id}')"><i class="fas fa-check"></i> Mark Fulfilled</button>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+            ${(state.bloodRequests || []).length === 0 ? '<p>No emergency requests right now.</p>' : ''}
+        </div>
+    </div>
+`;
 if (state.user) {
     // If logged in, fetch data for the active tab and render
     setTab(state.activeTab);

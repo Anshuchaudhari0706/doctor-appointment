@@ -15,6 +15,7 @@ public class User {
     private String role = "PATIENT";
     private String doctorId;
     private String medicalLicenseNumber;
+    private String bloodGroup; // A+, B-, O+, etc.
 
     @org.springframework.data.annotation.Transient
     private String otp;
@@ -85,5 +86,13 @@ public class User {
 
     public void setMedicalLicenseNumber(String medicalLicenseNumber) {
         this.medicalLicenseNumber = medicalLicenseNumber;
+    }
+
+    public String getBloodGroup() {
+        return bloodGroup;
+    }
+
+    public void setBloodGroup(String bloodGroup) {
+        this.bloodGroup = bloodGroup;
     }
 }
