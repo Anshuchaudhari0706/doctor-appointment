@@ -10,6 +10,7 @@ const state = {
     doctors: [],
     appointments: [],
     reports: [],
+    beds: [],
     lightMode: false,
     lang: 'en'
 };
@@ -114,6 +115,7 @@ function setTab(tab) {
         if (tab === 'doctors') fetchAdminDoctors();
         if (tab === 'patients') fetchAdminPatients();
         if (tab === 'receptionists') fetchAdminReceptionists();
+        if (tab === 'beds') fetchAdminBeds();
     }
 
     render();
@@ -638,6 +640,7 @@ const AdminNavbar = () => `
             ${navItem('patients', 'fas fa-users', 'Manage Patients')}
             ${navItem('receptionists', 'fas fa-user-nurse', 'Manage Receptionists')}
             ${navItem('appointments', 'fas fa-calendar-alt', 'All Appointments')}
+            ${navItem('beds', 'fas fa-bed', 'Manage Beds')}
             ${navItem('settings', 'fas fa-cog', 'System Settings')}
         </div>
         <div class="mt-auto">
@@ -950,6 +953,7 @@ function renderAdminTabs() {
         case 'patients': return AdminManagePatients();
         case 'receptionists': return AdminManageReceptionists();
         case 'appointments': return AdminManageAppointments();
+        case 'beds': return AdminManageBeds();
         case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
@@ -1702,6 +1706,7 @@ const TabBookings = () => `
                         ${apt.status === 'COMPLETED' && !apt.rating ? `
                             <button class="btn btn-ghost btn-sm" onclick="rateDoctor('${apt.id}')"><i class="fas fa-star"></i> Rate</button>
                         ` : ''}
+                        <button class="btn btn-outline btn-sm" onclick="showQRCode('${apt.id}')"><i class="fas fa-qrcode"></i> View QR Check-In</button>
                         ${apt.rating ? `<span style="color:#f59e0b; font-size:0.8rem;"><i class="fas fa-star"></i> ${apt.rating}/5</span>` : ''}
                     </div>
                 </div>
@@ -1744,6 +1749,49 @@ window.downloadPDF = function(title, content) {
     const lines = doc.splitTextToSize(content || '', 170);
     doc.text(lines, 20, 50);
     doc.save(title.replace(/\\s+/g, "_") + ".pdf");
+};
+
+window.showQRCode = function(aptId) {
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100vw';
+    modal.style.height = '100vh';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    modal.style.zIndex = '9999';
+    
+    const content = document.createElement('div');
+    content.className = 'card';
+    content.style.backgroundColor = 'var(--surface)';
+    content.style.padding = '2rem';
+    content.style.borderRadius = '12px';
+    content.style.textAlign = 'center';
+    content.style.minWidth = '300px';
+    
+    content.innerHTML = `
+        <h3 style="margin-top:0;">Appointment QR Code</h3>
+        <p class="text-muted" style="font-size:0.9rem;">Scan at the reception to instantly check-in.</p>
+        <div id="qrcode-container" style="margin:2rem auto; display:flex; justify-content:center; background:white; padding:1rem; border-radius:8px; display:inline-block;"></div>
+        <br>
+        <button class="btn btn-primary" onclick="this.parentElement.parentElement.remove()" style="width:100%;">Close</button>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    setTimeout(() => {
+        new QRCode(document.getElementById("qrcode-container"), {
+            text: "SYS_APPT_LINK_" + aptId,
+            width: 200,
+            height: 200,
+            colorDark : "#000000",
+            colorLight : "#ffffff"
+        });
+    }, 100);
 };
 
 const TabTimeline = () => {
@@ -2429,6 +2477,59 @@ async function deleteAdminAppointment(id) {
     } catch (e) { console.error(e); }
 }
 
+async function fetchAdminBeds() {
+    try {
+        const res = await fetch(`${API_BASE}/beds`);
+        state.beds = await res.json();
+        render();
+    } catch (e) { console.error(e); }
+}
+
+async function addAdminBed(e) {
+    e.preventDefault();
+    const wardName = document.getElementById('bed-ward').value;
+    const bedNumber = document.getElementById('bed-number').value;
+    try {
+        const res = await fetch(`${API_BASE}/beds`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wardName, bedNumber, status: 'AVAILABLE' })
+        });
+        if (res.ok) fetchAdminBeds();
+    } catch (e) { console.error(e); }
+}
+
+async function assignAdminBed(id) {
+    const pEmail = prompt("Enter Patient Email to assign:");
+    if (!pEmail) return;
+    const pName = prompt("Enter Patient Name:");
+    if (!pName) return;
+    try {
+        const res = await fetch(`${API_BASE}/beds/${id}/assign`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patientEmail: pEmail, patientName: pName })
+        });
+        if (res.ok) fetchAdminBeds();
+    } catch (e) { console.error(e); }
+}
+
+async function dischargeAdminBed(id) {
+    if (!confirm('Discharge this patient and free the bed?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/beds/${id}/discharge`, { method: 'PUT' });
+        if (res.ok) fetchAdminBeds();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteAdminBed(id) {
+    if (!confirm('Delete this bed entirely?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/beds/${id}`, { method: 'DELETE' });
+        if (res.ok) fetchAdminBeds();
+    } catch (e) { console.error(e); }
+}
+
 // --- ADMIN COMPONENTS ---
 
 const AdminDashboardHome = () => {
@@ -2613,7 +2714,52 @@ const AdminManageAppointments = () => `
             ${(state.adminAppointments || []).length === 0 ? '<p>No appointments found.</p>' : ''}
         </div>
     </div>
+    </div>
         `;
+
+const AdminManageBeds = () => `
+    <div class="card">
+        <h3>Hospital Bed & Ward Management</h3>
+        <p class="text-muted mb-4">View and assign ICU & General Beds</p>
+        
+        <div style="background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; margin-bottom:1rem; border:1px dashed var(--accent);">
+            <h4>Add New Bed</h4>
+            <form onsubmit="addAdminBed(event)" style="display:flex; gap:1rem; align-items:flex-end; margin-top:0.5rem;">
+                <div>
+                    <label class="form-label">Ward Name</label>
+                    <input type="text" id="bed-ward" class="form-input" placeholder="e.g. ICU" required>
+                </div>
+                <div>
+                    <label class="form-label">Bed Number</label>
+                    <input type="number" id="bed-number" class="form-input" placeholder="e.g. 101" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Bed</button>
+            </form>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:1rem;">
+            ${(state.beds || []).map(b => `
+                <div style="border:1px solid ${b.status === 'AVAILABLE' ? '#10b981' : '#ef4444'}; border-radius:8px; padding:1rem; background:${b.status === 'AVAILABLE' ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.05)'}">
+                    <div style="font-weight:bold; font-size:1.1rem; margin-bottom:0.5rem;">
+                        <i class="fas fa-bed"></i> ${b.wardName} - #${b.bedNumber}
+                    </div>
+                    <div style="color:${b.status === 'AVAILABLE' ? '#10b981' : '#ef4444'}; font-weight:bold; font-size:0.8rem; margin-bottom:1rem;">
+                        ${b.status}
+                    </div>
+                    ${b.status === 'OCCUPIED' ? `
+                        <div class="text-sm mb-2"><b>Patient:</b> ${b.patientName}</div>
+                        <div class="text-sm mb-3"><b>Admitted:</b> ${b.admissionDate}</div>
+                        <button class="btn btn-outline" style="width:100%; border-color:#f59e0b; color:#f59e0b" onclick="dischargeAdminBed('${b.id}')">Discharge Patient</button>
+                    ` : `
+                        <button class="btn btn-primary" style="width:100%; margin-bottom:0.5rem;" onclick="assignAdminBed('${b.id}')">Assign Patient</button>
+                        <button class="btn btn-outline" style="width:100%; border-color:var(--danger); color:var(--danger)" onclick="deleteAdminBed('${b.id}')">Delete Bed</button>
+                    `}
+                </div>
+            `).join('')}
+            ${(state.beds || []).length === 0 ? '<p>No beds found. Add one above.</p>' : ''}
+        </div>
+    </div>
+`;
 
 // Init
 if (state.user) {
