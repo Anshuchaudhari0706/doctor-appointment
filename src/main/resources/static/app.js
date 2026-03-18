@@ -490,14 +490,14 @@ async function register(e) {
     const password = document.getElementById('reg-password').value;
 
     let role = state.selectedRole || 'patient';
+    let medicalLicenseNumber = '';
 
     if (role === 'doctor') {
-        const codeElement = document.getElementById('reg-doc-code');
-        const code = codeElement ? codeElement.value : '';
-        const validCode = state.doctorAccessCode || 'DOC-2024';
+        const codeElement = document.getElementById('reg-doc-license');
+        medicalLicenseNumber = codeElement ? codeElement.value : '';
 
-        if (code !== validCode) {
-            alert("Invalid Doctor Access Code! Please contact Admin.");
+        if (!medicalLicenseNumber) {
+            alert("Medical License Number (NPI) is required!");
             btn.innerText = originalText;
             btn.disabled = false;
             return;
@@ -508,7 +508,7 @@ async function register(e) {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role: role })
+            body: JSON.stringify({ name, email, password, role: role, medicalLicenseNumber: medicalLicenseNumber })
         });
 
         if (!res.ok) {
@@ -774,9 +774,9 @@ const RegisterView = () => `
 
                 ${state.selectedRole === 'doctor' ? `
                 <div class="form-group fade-in" id="doc-code-group" style="background:rgba(114,9,183,0.05); padding:1rem; border-radius:8px; border:1px dashed var(--accent);">
-                    <label class="form-label" style="color:var(--accent);">Doctor Access Code</label>
-                    <input type="text" id="reg-doc-code" class="form-input" placeholder="Enter Registration Code" required>
-                    <small class="text-muted" style="font-size:0.75rem;">Provided by Hospital Administrator</small>
+                    <label class="form-label" style="color:var(--accent);">Medical License Number (NPI)</label>
+                    <input type="text" id="reg-doc-license" class="form-input" placeholder="Enter 10-digit NPI" required>
+                    <small class="text-muted" style="font-size:0.75rem;">Verified via National Provider Registry Api. Automatically validates if License exists and is active.</small>
                 </div>
                 ` : ''}
 

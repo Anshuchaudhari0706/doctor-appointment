@@ -14,6 +14,7 @@ public class User {
     private String password;
     private String role = "PATIENT";
     private String doctorId;
+    private String medicalLicenseNumber;
 
     @org.springframework.data.annotation.Transient
     private String otp;
@@ -76,5 +77,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getMedicalLicenseNumber() {
+        return medicalLicenseNumber;
+    }
+
+    public void setMedicalLicenseNumber(String medicalLicenseNumber) {
+        this.medicalLicenseNumber = medicalLicenseNumber;
     }
 }

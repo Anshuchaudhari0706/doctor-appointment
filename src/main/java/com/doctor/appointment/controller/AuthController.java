@@ -11,6 +11,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // Assu
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -72,9 +76,44 @@ public class AuthController {
                 return new LoginResponse("User already exists", false);
             }
 
-            // Allow frontend to set role, but default to patient if null
-            if (user.getRole() == null || user.getRole().isEmpty()) {
-                user.setRole("patient");
+            // DOCTOR REGISTRATION VALIDATION (Option 2: Automated Verification using NPI API)
+            if ("doctor".equalsIgnoreCase(user.getRole())) {
+                if (user.getMedicalLicenseNumber() == null || user.getMedicalLicenseNumber().trim().isEmpty()) {
+                    return new LoginResponse("Medical License Number (NPI) is required for Doctors.", false);
+                }
+
+                String license = user.getMedicalLicenseNumber().trim();
+
+                // 1. Basic format check (NPI numbers are 10 digits in the US)
+                if (!license.matches("\\d{10}")) {
+                     return new LoginResponse("Invalid format. NPI must be exactly 10 digits (e.g., 1234567890).", false);
+                }
+
+                // 2. Call the real NPI Registry API
+                try {
+                    RestTemplate restTemplate = new RestTemplate();
+                    String apiUrl = "https://npiregistry.cms.hhs.gov/api/?number=" + license + "&version=2.1";
+                    
+                    ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode rootNode = mapper.readTree(response.getBody());
+                    
+                    if (rootNode.has("result_count") && rootNode.get("result_count").asInt() > 0) {
+                        // Success! The API found the doctor.
+                        JsonNode provider = rootNode.get("results").get(0).get("basic");
+                        String verifiedName = provider.get("first_name").asText() + " " + provider.get("last_name").asText();
+                        System.out.println("✅ VERIFIED DOCTOR: " + verifiedName + " (NPI: " + license + ")");
+                        
+                        // Optional: You could overwrite their provided name with their legal registered name here.
+                        // user.setName(verifiedName); 
+                    } else {
+                        // The API did not find this license number in the real world
+                        return new LoginResponse("❌ Verification Failed: This Medical License Number does not exist in the official US registry.", false);
+                    }
+                } catch (Exception apiEx) {
+                    System.err.println("API Verification Error: " + apiEx.getMessage());
+                    return new LoginResponse("Error communicating with the Medical Registry API. Please try again later.", false);
+                }
             }
 
             user.setPassword(encoder.encode(user.getPassword()));
