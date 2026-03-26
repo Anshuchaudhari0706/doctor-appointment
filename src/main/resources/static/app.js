@@ -1215,13 +1215,17 @@ window.openMapModal = function() {
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;';
 
     overlay.innerHTML = `
-        <div style="background:var(--surface);border-radius:16px;width:600px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="background:var(--surface);border-radius:16px;width:700px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
             <div style="background:var(--primary);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-weight:700;color:white;font-size:1.1rem;"><i class="fas fa-map-marker-alt"></i> Select Pick-up Location</div>
                 <button onclick="closeMapModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;"><i class="fas fa-times"></i></button>
             </div>
             <div style="padding:1rem;">
-                <p class="text-sm text-muted mb-2">Click anywhere on the map to drop the marker pinpointing your hospital.</p>
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                    <input type="text" id="map-search-input" class="form-input" placeholder="Search city or specific hospital..." style="flex:1;">
+                    <button class="btn btn-secondary" onclick="searchMapLocation()"><i class="fas fa-search"></i> Search Map</button>
+                </div>
+                <p class="text-sm text-muted mb-2">Click anywhere on the map to pinpoint your exact hospital, which will auto-fill your address!</p>
                 <div id="modal-map-container" style="height:350px; width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.1);"></div>
                 <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
                     <button class="btn btn-primary" onclick="closeMapModal()">Confirm Selection</button>
@@ -1247,32 +1251,79 @@ window.openMapModal = function() {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(window.leafletModalMap);
 
-        // Force a size recalculation to prevent gray box
         window.leafletModalMap.invalidateSize();
 
-        let docMarker;
-        
         // Add marker if coordinates exist
         if (document.getElementById('doc-lat').value) {
-            docMarker = L.marker([startLat, startLng]).addTo(window.leafletModalMap);
+            window.docMarker = L.marker([startLat, startLng]).addTo(window.leafletModalMap);
         }
 
-        // On Click => Update coords and marker
-        window.leafletModalMap.on('click', function(e) {
+        // On Click => Update coords, marker and Address!
+        window.leafletModalMap.on('click', async function(e) {
             const lat = e.latlng.lat.toFixed(6);
             const lng = e.latlng.lng.toFixed(6);
             
             document.getElementById('doc-lat').value = lat;
             document.getElementById('doc-long').value = lng;
 
-            if (docMarker) {
-                window.leafletModalMap.removeLayer(docMarker);
+            if (window.docMarker) {
+                window.leafletModalMap.removeLayer(window.docMarker);
             }
             
-            docMarker = L.marker([lat, lng]).addTo(window.leafletModalMap);
+            window.docMarker = L.marker([lat, lng]).addTo(window.leafletModalMap);
+            
+            // Reverse Geocoding to Auto-Fill Address
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                    headers: { 'Accept-Language': 'en' }
+                });
+                const geodata = await res.json();
+                if (geodata && geodata.display_name) {
+                    const docAddress = document.getElementById('doc-address');
+                    const docHospital = document.getElementById('doc-hospital');
+                    if (docAddress) docAddress.value = geodata.display_name;
+                    
+                    if (docHospital && geodata.address) {
+                        if (geodata.address.hospital) docHospital.value = geodata.address.hospital;
+                        else if (geodata.address.clinic) docHospital.value = geodata.address.clinic;
+                    }
+                }
+            } catch(error) {
+                console.error("Reverse geocoding failed", error);
+            }
         });
     }, 150);
-}
+};
+
+window.searchMapLocation = async function() {
+    const query = document.getElementById('map-search-input').value;
+    if(!query || !window.leafletModalMap) return;
+    try {
+        const btn = event.currentTarget;
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+            headers: { 'Accept-Language': 'en' }
+        });
+        const data = await response.json();
+        
+        btn.innerHTML = origText;
+
+        if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
+            window.leafletModalMap.setView([lat, lng], 16);
+            // Programmatically trigger a click to drop the pin and auto-fill address
+            window.leafletModalMap.fire('click', {latlng: L.latLng(lat, lng)});
+        } else {
+            alert("Location not found.");
+        }
+    } catch(err) {
+        console.error(err);
+        alert("Search failed.");
+    }
+};
 
 window.closeMapModal = function() {
     if (window.leafletModalMap) {
@@ -1281,7 +1332,7 @@ window.closeMapModal = function() {
     }
     const overlay = document.getElementById('map-modal-overlay');
     if (overlay) overlay.remove();
-}
+};
 
 const TabNearbyHospitals = () => `
     <div class="card">
