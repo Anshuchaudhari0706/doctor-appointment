@@ -1284,13 +1284,7 @@ window.openMapModal = function() {
                 const geodata = await res.json();
                 if (geodata && geodata.display_name) {
                     const docAddress = document.getElementById('doc-address');
-                    const docHospital = document.getElementById('doc-hospital');
                     if (docAddress) docAddress.value = geodata.display_name;
-                    
-                    if (docHospital && geodata.address) {
-                        if (geodata.address.hospital) docHospital.value = geodata.address.hospital;
-                        else if (geodata.address.clinic) docHospital.value = geodata.address.clinic;
-                    }
                 }
             } catch(error) {
                 console.error("Reverse geocoding failed", error);
