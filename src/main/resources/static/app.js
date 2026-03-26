@@ -1064,15 +1064,16 @@ const DoctorSchedule = () => `
                     </div>
                 </div>
                 <div class="form-group mt-2">
-                    <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
-                        <span>Hospital Address</span>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="geocodeAddress()" style="background:#10b981; border:none; padding:0.25rem 0.5rem; font-size:0.75rem;"><i class="fas fa-search-location"></i> Auto-Fill Coordinates</button>
-                    </label>
+                    <label class="form-label">Hospital Address</label>
                     <input type="text" id="doc-address" class="form-input" placeholder="e.g. 123 Main St, New York, NY" value="${state.doctorProfile?.hospitalAddress || ''}">
                 </div>
                 
                 <div class="mt-2" style="background:rgba(16,185,129,0.05); border:1px dashed #10b981; padding:1rem; border-radius:8px;">
-                    <label class="form-label text-sm text-muted">Hospital Coordinates (used for Map Search):</label>
+                    <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end; color:#10b981;">
+                        <span><i class="fas fa-map-marked-alt"></i> Hospital Coordinates</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openMapModal()" style="background:#10b981; border:none; padding:0.25rem 0.5rem; font-size:0.75rem;"><i class="fas fa-location-arrow"></i> Select from Map</button>
+                    </label>
+                    <p class="text-sm text-muted mb-2">Click 'Select from Map' to drop a pin, or enter exact coordinates manually.</p>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="text" id="doc-lat" class="form-input" placeholder="Latitude (e.g. 37.422)" value="${state.doctorProfile?.latitude || ''}">
                         <input type="text" id="doc-long" class="form-input" placeholder="Longitude (e.g. -122.084)" value="${state.doctorProfile?.longitude || ''}">
@@ -1203,38 +1204,83 @@ window.updateAvailability = async function (e) {
     }
 };
 
-window.geocodeAddress = async function() {
-    const address = document.getElementById('doc-address').value;
-    if (!address || address.trim() === '') {
-        alert("Please enter a Hospital Address first.");
-        return;
-    }
-    
-    try {
-        const btn = event.currentTarget;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
-        btn.disabled = true;
+window.openMapModal = function() {
+    // 1. Remove old modal if exists
+    const existing = document.getElementById('map-modal-overlay');
+    if (existing) existing.remove();
 
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
-            headers: { 'Accept-Language': 'en' }
-        });
-        const data = await response.json();
+    // 2. Create the modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'map-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;';
 
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+    overlay.innerHTML = `
+        <div style="background:var(--surface);border-radius:16px;width:600px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+            <div style="background:var(--primary);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-weight:700;color:white;font-size:1.1rem;"><i class="fas fa-map-marker-alt"></i> Select Pick-up Location</div>
+                <button onclick="closeMapModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:1rem;">
+                <p class="text-sm text-muted mb-2">Click anywhere on the map to drop the marker pinpointing your hospital.</p>
+                <div id="modal-map-container" style="height:350px; width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.1);"></div>
+                <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+                    <button class="btn btn-primary" onclick="closeMapModal()">Confirm Selection</button>
+                </div>
+            </div>
+        </div>
+    `;
 
-        if (data && data.length > 0) {
-            document.getElementById('doc-lat').value = parseFloat(data[0].lat).toFixed(6);
-            document.getElementById('doc-long').value = parseFloat(data[0].lon).toFixed(6);
-            alert("Coordinates found automatically!");
-        } else {
-            alert("Could not find this address. Try adding city and country, or enter coordinates manually.");
+    document.body.appendChild(overlay);
+
+    // 3. Initialize Leaflet safely after DOM paints the modal
+    setTimeout(() => {
+        let startLat = parseFloat(document.getElementById('doc-lat').value) || 40.7128;
+        let startLng = parseFloat(document.getElementById('doc-long').value) || -74.0060;
+
+        if (window.leafletModalMap) {
+            window.leafletModalMap.remove();
         }
-    } catch (error) {
-        console.error("Geocoding error:", error);
-        alert("Error fetching location data. You can enter the coordinates manually.");
+
+        window.leafletModalMap = L.map('modal-map-container').setView([startLat, startLng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(window.leafletModalMap);
+
+        // Force a size recalculation to prevent gray box
+        window.leafletModalMap.invalidateSize();
+
+        let docMarker;
+        
+        // Add marker if coordinates exist
+        if (document.getElementById('doc-lat').value) {
+            docMarker = L.marker([startLat, startLng]).addTo(window.leafletModalMap);
+        }
+
+        // On Click => Update coords and marker
+        window.leafletModalMap.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6);
+            const lng = e.latlng.lng.toFixed(6);
+            
+            document.getElementById('doc-lat').value = lat;
+            document.getElementById('doc-long').value = lng;
+
+            if (docMarker) {
+                window.leafletModalMap.removeLayer(docMarker);
+            }
+            
+            docMarker = L.marker([lat, lng]).addTo(window.leafletModalMap);
+        });
+    }, 150);
+}
+
+window.closeMapModal = function() {
+    if (window.leafletModalMap) {
+        window.leafletModalMap.remove();
+        window.leafletModalMap = null;
     }
+    const overlay = document.getElementById('map-modal-overlay');
+    if (overlay) overlay.remove();
 }
 
 const TabNearbyHospitals = () => `
