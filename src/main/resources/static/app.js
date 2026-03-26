@@ -1141,7 +1141,7 @@ window.addSlot = function () {
 window.renderSlots = function () {
     const list = document.getElementById('schedule-list');
     list.innerHTML = window.tempSchedule.map((s, i) => `
-    < div style = "display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border); animation: fadeIn 0.3s ease-in-out;" >
+    <div style="display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid var(--border);">
             <div style="flex:1;">
                 <h4 style="margin-bottom:0.25rem;">${s.date}</h4>
                 <div style="font-size:0.85rem; color:var(--text-secondary);">
@@ -1151,8 +1151,9 @@ window.renderSlots = function () {
             <button type="button" class="btn btn-secondary btn-sm" onclick="removeSlot(${i})" style="color:var(--danger); border-color:var(--danger);">
                 <i class="fas fa-trash"></i> Remove
             </button>
-        </div >
+        </div>
     `).join('');
+
 }
 
 window.removeSlot = function (index) {
