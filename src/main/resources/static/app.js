@@ -1069,11 +1069,9 @@ const DoctorSchedule = () => `
                 </div>
                 
                 <div class="mt-2" style="background:rgba(16,185,129,0.05); border:1px dashed #10b981; padding:1rem; border-radius:8px;">
-                    <label class="form-label" style="color:#10b981;"><i class="fas fa-map-marker-alt"></i> Hospital Location (Google Maps)</label>
-                    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                        <input type="text" id="gmaps-url" class="form-input" placeholder="Paste Google Maps browser URL here..." style="flex:1;">
-                        <button type="button" class="btn btn-primary" onclick="parseGoogleMapsUrl()" style="background:#10b981; border:none;">Extract Coordinates</button>
-                    </div>
+                    <label class="form-label" style="color:#10b981;"><i class="fas fa-map-marker-alt"></i> Hospital Location (Select on Map)</label>
+                    <p class="text-sm text-muted mb-2">Click on the map below to pinpoint your exact hospital or clinic location.</p>
+                    <div id="interactive-map" style="height:250px; width:100%; border-radius:8px; border:1px solid #10b981; margin-bottom:1rem; z-index:1;"></div>
                     
                     <label class="form-label text-sm text-muted">Or manually enter exact coordinates:</label>
                     <div style="display:flex; gap:0.5rem;">
@@ -1206,24 +1204,49 @@ window.updateAvailability = async function (e) {
     }
 };
 
-window.parseGoogleMapsUrl = function() {
-    const url = document.getElementById('gmaps-url').value;
-    if(!url) {
-        alert("Please paste a Google Maps link first");
-        return;
+window.initDoctorMap = function() {
+    const mapDiv = document.getElementById('interactive-map');
+    if (!mapDiv) return;
+
+    // Default to New York, or current profile coordinates
+    let startLat = parseFloat(document.getElementById('doc-lat').value) || 40.7128;
+    let startLng = parseFloat(document.getElementById('doc-long').value) || -74.0060;
+
+    // Clear any existing map instance to prevent "Map container is already initialized" error
+    if (window.leafletMap) {
+        window.leafletMap.remove();
+        window.leafletMap = null;
     }
 
-    // RegEx match for /@latitude,longitude
-    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = url.match(regex);
+    window.leafletMap = L.map('interactive-map').setView([startLat, startLng], 13);
     
-    if (match && match.length >= 3) {
-        document.getElementById('doc-lat').value = match[1];
-        document.getElementById('doc-long').value = match[2];
-        alert("Extracted coordinates successfully!");
-    } else {
-        alert("Could not extract coordinates directly. Please ensure you copied the URL from the browser address bar while viewing the location on Google Maps (it should contain @lat,lng). Alternatively, enter them manually.");
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(window.leafletMap);
+
+    let docMarker;
+    
+    // Only add a marker if there are existing coordinates
+    if (document.getElementById('doc-lat').value) {
+        docMarker = L.marker([startLat, startLng]).addTo(window.leafletMap)
+            .bindPopup("Hospital Location").openPopup();
     }
+
+    // Handle Map Clicks
+    window.leafletMap.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        
+        document.getElementById('doc-lat').value = lat;
+        document.getElementById('doc-long').value = lng;
+
+        if (docMarker) {
+            window.leafletMap.removeLayer(docMarker);
+        }
+        
+        docMarker = L.marker([lat, lng]).addTo(window.leafletMap)
+            .bindPopup("Selected Location").openPopup();
+    });
 }
 
 const TabNearbyHospitals = () => `
@@ -2399,6 +2422,11 @@ function render() {
     if (state.activeTab === 'support') {
         const historyContainer = document.getElementById('chat-history');
         if (historyContainer) historyContainer.scrollTop = historyContainer.scrollHeight;
+    }
+    
+    // Initialize Leaflet Map if we're on the Doctor Profile tab
+    if (state.user && (state.user.role === 'doctor' || state.user.role === 'receptionist') && state.activeTab === 'profile') {
+        setTimeout(initDoctorMap, 100);
     }
 }
 
