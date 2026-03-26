@@ -1221,9 +1221,13 @@ window.openMapModal = function() {
                 <button onclick="closeMapModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;"><i class="fas fa-times"></i></button>
             </div>
             <div style="padding:1rem;">
-                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-                    <input type="text" id="map-search-input" class="form-input" placeholder="Search city or specific hospital..." style="flex:1;">
-                    <button class="btn btn-secondary" onclick="searchMapLocation()"><i class="fas fa-search"></i> Search Map</button>
+                <div style="position:relative; margin-bottom:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="map-search-input" class="form-input" placeholder="Search city, hospital, or clinic..." style="flex:1;" oninput="debounceMapSearch()">
+                        <button class="btn btn-secondary" onclick="searchMapLocation()"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div id="map-search-suggestions" style="position:absolute; top:calc(100% + 4px); left:0; width:100%; max-height:220px; overflow-y:auto; background:var(--surface); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:1000; display:none; flex-direction:column; border:1px solid rgba(255,255,255,0.1);">
+                    </div>
                 </div>
                 <p class="text-sm text-muted mb-2">Click anywhere on the map to pinpoint your exact hospital, which will auto-fill your address!</p>
                 <div id="modal-map-container" style="height:350px; width:100%; border-radius:8px; border:1px solid rgba(255,255,255,0.1);"></div>
@@ -1295,33 +1299,62 @@ window.openMapModal = function() {
     }, 150);
 };
 
-window.searchMapLocation = async function() {
+window.debounceMapSearch = function() {
+    clearTimeout(window.mapSearchTimeout);
+    window.mapSearchTimeout = setTimeout(fetchMapSuggestions, 400);
+};
+
+window.fetchMapSuggestions = async function() {
     const query = document.getElementById('map-search-input').value;
-    if(!query || !window.leafletModalMap) return;
+    const suggBox = document.getElementById('map-search-suggestions');
+    if (!query || query.length < 3) {
+        suggBox.style.display = 'none';
+        return;
+    }
     try {
-        const btn = event.currentTarget;
-        const origText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`, {
             headers: { 'Accept-Language': 'en' }
         });
         const data = await response.json();
         
-        btn.innerHTML = origText;
-
         if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lng = parseFloat(data[0].lon);
-            window.leafletModalMap.setView([lat, lng], 16);
-            // Programmatically trigger a click to drop the pin and auto-fill address
-            window.leafletModalMap.fire('click', {latlng: L.latLng(lat, lng)});
+            suggBox.innerHTML = '';
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.style.cssText = "padding:0.6rem 1rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text); font-size:0.9rem; transition: background 0.2s;";
+                div.innerHTML = `<i class="fas fa-map-marker-alt" style="color:#10b981; margin-right:0.5rem;"></i> ${item.display_name}`;
+                div.onmouseover = () => div.style.background = 'rgba(16,185,129,0.1)';
+                div.onmouseout = () => div.style.background = 'transparent';
+                div.onclick = () => {
+                    document.getElementById('map-search-input').value = item.display_name;
+                    suggBox.style.display = 'none';
+                    selectFromSuggestion(parseFloat(item.lat), parseFloat(item.lon));
+                };
+                suggBox.appendChild(div);
+            });
+            suggBox.style.display = 'flex';
         } else {
-            alert("Location not found.");
+            suggBox.style.display = 'none';
         }
-    } catch(err) {
-        console.error(err);
-        alert("Search failed.");
+    } catch (err) {
+        console.error("Suggestion fetch failed", err);
+    }
+};
+
+window.selectFromSuggestion = function(lat, lng) {
+    if (!window.leafletModalMap) return;
+    window.leafletModalMap.setView([lat, lng], 16);
+    // Trigger click to drop pin and run reverse geocoding to auto-fill hospital fields
+    window.leafletModalMap.fire('click', {latlng: L.latLng(lat, lng)});
+};
+
+window.searchMapLocation = function() {
+    // If they click search icon manually, just trigger the first suggestion or fire standard request
+    const suggBox = document.getElementById('map-search-suggestions');
+    if (suggBox.style.display === 'flex' && suggBox.firstChild) {
+        suggBox.firstChild.click();
+    } else {
+        fetchMapSuggestions();
     }
 };
 
