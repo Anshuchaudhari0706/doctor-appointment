@@ -1362,87 +1362,250 @@ window.closeMapModal = function() {
 };
 
 const TabNearbyHospitals = () => `
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Nearby Hospitals (Within 500m)</div>
-            <button class="btn btn-primary" onclick="findNearbyHospitals()"><i class="fas fa-search-location"></i> Find Near Me</button>
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header border-bottom">
+            <h3 style="margin:0;"><i class="fas fa-search-location" style="color:var(--primary);"></i> Map & Radius Search</h3>
+            <p class="text-muted text-sm" style="margin-top:0.25rem;">Find doctors within a specific radius of your location.</p>
         </div>
-        <div id="nearby-results" class="mt-4">
-            <p class="text-muted text-center" style="padding:2rem;">Click "Find Near Me" to locate hospitals close to you.</p>
+        <div style="padding: 1.5rem;">
+            <div class="grid-cols-2" style="gap:1rem; align-items:end; margin-bottom:1.5rem;">
+                <div>
+                    <label class="form-label" style="display:flex; justify-content:space-between;">
+                        <span>Your Location</span>
+                        <button class="btn btn-sm btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem;" onclick="patientDetectLocation()">
+                            <i class="fas fa-crosshairs"></i> Use GPS
+                        </button>
+                    </label>
+                    <div style="position:relative;">
+                        <input type="text" id="patient-loc-input" class="form-input" placeholder="Enter city, street, or zip...">
+                    </div>
+                    <input type="hidden" id="patient-lat">
+                    <input type="hidden" id="patient-lng">
+                </div>
+                <div>
+                    <label class="form-label" style="display:flex; justify-content:space-between;">
+                        <span>Search Radius</span>
+                        <span id="radius-display" style="color:var(--primary); font-weight:bold;">10 km</span>
+                    </label>
+                    <input type="range" id="patient-radius" min="1" max="100" value="10" style="width:100%; accent-color:var(--primary);" oninput="document.getElementById('radius-display').innerText = this.value + ' km';">
+                </div>
+            </div>
+            <button class="btn btn-primary w-100" onclick="performRadiusSearch()" style="margin-bottom:1.5rem;"><i class="fas fa-search"></i> Search Nearby Doctors</button>
+
+            <div id="patient-search-map" style="height:400px; width:100%; border-radius:12px; border:1px solid var(--border); margin-bottom:1.5rem; z-index:1;"></div>
+
+            <div id="nearby-results" style="display:flex; flex-direction:column; gap:1rem;">
+                <p class="text-muted text-center" style="padding:2rem;">Enter your location and click Search to locate hospitals close to you.</p>
+            </div>
         </div>
     </div>
 `;
 
-window.findNearbyHospitals = function () {
-    const resultsDiv = document.getElementById('nearby-results');
-    resultsDiv.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:1rem;">
-            <div class="skeleton skeleton-box"></div>
-            <div class="skeleton skeleton-box"></div>
-            <div class="skeleton skeleton-box"></div>
-        </div>
-    `;
+window.initPatientMap = function() {
+    const mapDiv = document.getElementById('patient-search-map');
+    if(!mapDiv) return;
+    
+    // Default Map Location (e.g. Center of country/world or previously selected)
+    let startLat = 40.7128;
+    let startLng = -74.0060;
 
+    if (window.patientMap) {
+        window.patientMap.remove();
+        window.patientMap = null;
+    }
+
+    window.patientMap = L.map('patient-search-map').setView([startLat, startLng], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(window.patientMap);
+
+    setTimeout(() => {
+        window.patientMap.invalidateSize();
+    }, 350);
+};
+
+window.patientDetectLocation = function() {
     if (navigator.geolocation) {
+        const btn = event.currentTarget;
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating...';
+        btn.disabled = true;
+
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setTimeout(() => {
-                    const userLat = position.coords.latitude;
-                const userLong = position.coords.longitude;
-
-                // Filter Doctors
-                // Logic: Distance < 0.5 km (500 meters)
-                const nearby = state.doctors.filter(doc => {
-                    if (!doc.latitude || !doc.longitude) return false;
-                    const dist = calculateDistance(userLat, userLong, doc.latitude, doc.longitude);
-                    doc.distanceObj = dist; // Store for display
-                    return dist < 0.5; // less than 0.5 km
-                });
-
-                if (nearby.length === 0) {
-                    resultsDiv.innerHTML = `
-                        <div style="text-align:center; padding:2rem;">
-                            <i class="fas fa-map-marked-alt" style="font-size:2rem; color:var(--text-muted); margin-bottom:1rem;"></i>
-                            <p>No hospitals found within 500 meters.</p>
-                            <p class="text-sm text-muted">Try asking doctors to update their location in their profile.</p>
-                        </div>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div style="display:flex; flex-direction:column; gap:1rem;">
-                            ${nearby.map(doc => `
-                                <div style="display:flex; gap:1rem; padding:1rem; background:var(--surface); border:1px solid var(--primary); border-radius:12px;">
-                                    <div style="width:60px; height:60px; background:var(--primary); color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
-                                        <i class="fas fa-hospital"></i>
-                                    </div>
-                                    <div style="flex:1;">
-                                        <h4 style="margin:0;">${doc.hospitalName || 'Unnamed Clinic'}</h4>
-                                        <div style="font-size:0.9rem; margin-bottom:0.25rem;">${doc.hospitalAddress || 'Address not listed'}</div>
-                                        <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--text-secondary);">
-                                            <span><strong>Dr. ${doc.name}</strong> (${doc.specialization})</span>
-                                            <span>•</span>
-                                            <span>${(doc.distanceObj * 1000).toFixed(0)}m away</span>
-                                        </div>
-                                    </div>
-                                    <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:end;">
-                                        <a href="tel:${doc.phone}" class="btn btn-secondary btn-sm"><i class="fas fa-phone"></i> Call</a>
-                                        <a href="https://www.google.com/maps/search/?api=1&query=${doc.latitude},${doc.longitude}" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-directions"></i> Map</a>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                document.getElementById('patient-lat').value = lat;
+                document.getElementById('patient-lng').value = lng;
+                
+                // Reverse geocode to show address
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                        headers: { 'Accept-Language': 'en' }
+                    });
+                    const data = await res.json();
+                    if(data && data.display_name) {
+                        document.getElementById('patient-loc-input').value = data.display_name;
+                    } else {
+                        document.getElementById('patient-loc-input').value = "Current GPS Location";
+                    }
+                } catch(e) {
+                    document.getElementById('patient-loc-input').value = "Current GPS Location";
                 }
-                }, 800); // Simulated skeleton delay
+                
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                
+                // Automatically run search
+                performRadiusSearch();
             },
             (error) => {
-                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}. Please enable location access.</div>`;
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                alert("Error detecting location: " + error.message + ". Please try typing your city manually.");
             }
         );
     } else {
-        alert("Geolocation is not supported.");
+        alert("Geolocation not supported by your browser.");
     }
-}
+};
+
+window.performRadiusSearch = async function() {
+    const locInput = document.getElementById('patient-loc-input').value;
+    let uLat = document.getElementById('patient-lat').value;
+    let uLng = document.getElementById('patient-lng').value;
+    const radiusStr = document.getElementById('patient-radius').value;
+    const radius = parseFloat(radiusStr);
+    
+    // Auto-Geocode if they typed an address but didn't use GPS
+    if (locInput && (!uLat || !uLng || document.getElementById('patient-loc-input').dataset.lastSearch !== locInput)) {
+        try {
+            const resultsDiv = document.getElementById('nearby-results');
+            resultsDiv.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin" style="font-size:2rem; color:var(--primary);"></i><p>Locating address...</p></div>';
+            
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locInput)}&limit=1`, {
+                headers: { 'Accept-Language': 'en' }
+            });
+            const data = await response.json();
+            if (data && data.length > 0) {
+                uLat = parseFloat(data[0].lat);
+                uLng = parseFloat(data[0].lon);
+                document.getElementById('patient-lat').value = uLat;
+                document.getElementById('patient-lng').value = uLng;
+                document.getElementById('patient-loc-input').dataset.lastSearch = locInput; // save state
+            } else {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Could not find the entered location. Please check the spelling.</div>`;
+                return;
+            }
+        } catch(e) { 
+            document.getElementById('nearby-results').innerHTML = `<div class="alert alert-danger">Server error while searching. Please try again.</div>`;
+            return; 
+        }
+    } else if (!locInput && (!uLat || !uLng)) {
+        alert("Please enter a location or click 'Use GPS'.");
+        return;
+    }
+    
+    uLat = parseFloat(uLat);
+    uLng = parseFloat(uLng);
+    
+    const resultsDiv = document.getElementById('nearby-results');
+    resultsDiv.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin" style="font-size:2rem; color:var(--primary);"></i><p>Searching for nearby doctors...</p></div>';
+    
+    // Map visualization
+    if (window.patientMap) {
+        // Clear all layers EXCEPT the base tile layer
+        window.patientMap.eachLayer((layer) => {
+            if (layer instanceof L.Marker || layer instanceof L.Circle) {
+                window.patientMap.removeLayer(layer);
+            }
+        });
+        
+        // Add User Marker (Blue)
+        const userIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
+        });
+        L.marker([uLat, uLng], {icon: userIcon}).addTo(window.patientMap).bindPopup("<b>Your Search Location</b>").openPopup();
+        
+        // Add Radius Circle
+        L.circle([uLat, uLng], {
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.1,
+            radius: radius * 1000 // meters
+        }).addTo(window.patientMap);
+        
+        // Fit view to the entire circle bounds
+        const bounds = L.circle([uLat, uLng], {radius: radius * 1000}).getBounds();
+        window.patientMap.fitBounds(bounds);
+    }
+    
+    // Perform Filtering
+    setTimeout(() => {
+        const nearby = state.doctors.filter(doc => {
+            if (!doc.latitude || !doc.longitude) return false;
+            const dist = calculateDistance(uLat, uLng, parseFloat(doc.latitude), parseFloat(doc.longitude));
+            doc.distanceObj = dist;
+            return dist <= radius;
+        }).sort((a,b) => a.distanceObj - b.distanceObj);
+        
+        if (nearby.length === 0) {
+            resultsDiv.innerHTML = `
+                <div style="text-align:center; padding:2rem;">
+                    <i class="fas fa-search-minus" style="font-size:3rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+                    <h4>No doctors found within ${radius} km</h4>
+                    <p class="text-muted">Try expanding your search radius or modifying your location.</p>
+                </div>
+            `;
+        } else {
+            // Plot Doctors on Map
+            if (window.patientMap) {
+                const docIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
+                });
+                
+                nearby.forEach(doc => {
+                    L.marker([parseFloat(doc.latitude), parseFloat(doc.longitude)], {icon: docIcon})
+                        .addTo(window.patientMap)
+                        .bindPopup(`<b>${doc.hospitalName || 'Clinic'}</b><br>Dr. ${doc.name}<br>${(doc.distanceObj).toFixed(1)} km away`);
+                });
+            }
+            
+            // Build the List
+            resultsDiv.innerHTML = `
+                <h4 style="margin-bottom:0.5rem; color:var(--text);">${nearby.length} Doctors Found</h4>
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    ${nearby.map(doc => `
+                        <div style="display:flex; gap:1rem; padding:1.25rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; align-items:center;">
+                            <div style="width:50px; height:50px; background:rgba(16,185,129,0.1); color:var(--primary); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                <i class="fas fa-stethoscope"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <h4 style="margin:0; font-size:1.1rem;">Dr. ${doc.name}</h4>
+                                <div style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:0.4rem;">${doc.specialization} • ${doc.experience} Years Exp.</div>
+                                <div style="font-size:0.9rem; margin-bottom:0.4rem;"><strong>${doc.hospitalName || 'Clinic'}</strong> - <span style="color:var(--text-muted);">${doc.hospitalAddress || 'Address not provided'}</span></div>
+                                <div style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.2rem 0.6rem; background:rgba(16,185,129,0.1); border-radius:4px; font-size:0.8rem; color:var(--primary); font-weight:bold;">
+                                    <i class="fas fa-map-marker-alt"></i> ${(doc.distanceObj).toFixed(1)} km away
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:end;">
+                                <button class="btn btn-primary" onclick="state.activeTab = 'explore'; render(); setTimeout(() => document.getElementById('search-input').value = '${doc.name}', 100);"><i class="fas fa-calendar-check"></i> Book Now</button>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <a href="tel:${doc.phone}" class="btn btn-secondary btn-sm"><i class="fas fa-phone"></i></a>
+                                    <a href="https://www.google.com/maps/search/?api=1&query=${doc.latitude},${doc.longitude}" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-directions"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }, 400); // UI delay for effect
+};
 
 // Haversine Formula for distance in km
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -1454,12 +1617,11 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    return d;
+    return R * c; // Distance in km
 }
 
 function deg2rad(deg) {
-    return deg * (Math.PI / 180)
+    return deg * (Math.PI / 180);
 }
 
 const DoctorAppointments = () => `
@@ -2534,6 +2696,11 @@ function render() {
     if (state.activeTab === 'support') {
         const historyContainer = document.getElementById('chat-history');
         if (historyContainer) historyContainer.scrollTop = historyContainer.scrollHeight;
+    }
+    
+    // Initialize Patient Radius Map if we are on Near Me tab
+    if (state.user && state.user.role === 'patient' && state.activeTab === 'nearby') {
+        setTimeout(initPatientMap, 200);
     }
 }
 
