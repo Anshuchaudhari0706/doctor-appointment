@@ -1064,16 +1064,15 @@ const DoctorSchedule = () => `
                     </div>
                 </div>
                 <div class="form-group mt-2">
-                    <label class="form-label">Hospital Address</label>
-                    <input type="text" id="doc-address" class="form-input" placeholder="123 Street, City" value="${state.doctorProfile?.hospitalAddress || ''}">
+                    <label class="form-label" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <span>Hospital Address</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="geocodeAddress()" style="background:#10b981; border:none; padding:0.25rem 0.5rem; font-size:0.75rem;"><i class="fas fa-search-location"></i> Auto-Fill Coordinates</button>
+                    </label>
+                    <input type="text" id="doc-address" class="form-input" placeholder="e.g. 123 Main St, New York, NY" value="${state.doctorProfile?.hospitalAddress || ''}">
                 </div>
                 
                 <div class="mt-2" style="background:rgba(16,185,129,0.05); border:1px dashed #10b981; padding:1rem; border-radius:8px;">
-                    <label class="form-label" style="color:#10b981;"><i class="fas fa-map-marker-alt"></i> Hospital Location (Select on Map)</label>
-                    <p class="text-sm text-muted mb-2">Click on the map below to pinpoint your exact hospital or clinic location.</p>
-                    <div id="interactive-map" style="height:250px; width:100%; border-radius:8px; border:1px solid #10b981; margin-bottom:1rem; z-index:1;"></div>
-                    
-                    <label class="form-label text-sm text-muted">Or manually enter exact coordinates:</label>
+                    <label class="form-label text-sm text-muted">Hospital Coordinates (used for Map Search):</label>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="text" id="doc-lat" class="form-input" placeholder="Latitude (e.g. 37.422)" value="${state.doctorProfile?.latitude || ''}">
                         <input type="text" id="doc-long" class="form-input" placeholder="Longitude (e.g. -122.084)" value="${state.doctorProfile?.longitude || ''}">
@@ -1204,54 +1203,38 @@ window.updateAvailability = async function (e) {
     }
 };
 
-window.initDoctorMap = function() {
-    const mapDiv = document.getElementById('interactive-map');
-    if (!mapDiv) return;
-
-    // Default to New York, or current profile coordinates
-    let startLat = parseFloat(document.getElementById('doc-lat').value) || 40.7128;
-    let startLng = parseFloat(document.getElementById('doc-long').value) || -74.0060;
-
-    // Clear any existing map instance to prevent "Map container is already initialized" error
-    if (window.leafletMap) {
-        window.leafletMap.remove();
-        window.leafletMap = null;
+window.geocodeAddress = async function() {
+    const address = document.getElementById('doc-address').value;
+    if (!address || address.trim() === '') {
+        alert("Please enter a Hospital Address first.");
+        return;
     }
-
-    window.leafletMap = L.map('interactive-map').setView([startLat, startLng], 13);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(window.leafletMap);
+    try {
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        btn.disabled = true;
 
-    let docMarker;
-    
-    // Only add a marker if there are existing coordinates
-    if (document.getElementById('doc-lat').value) {
-        docMarker = L.marker([startLat, startLng]).addTo(window.leafletMap)
-            .bindPopup("Hospital Location").openPopup();
-    }
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
+            headers: { 'Accept-Language': 'en' }
+        });
+        const data = await response.json();
 
-    // Force map to recalculate bounding box (fixes gray map issues on dynamic rendering)
-    setTimeout(() => {
-        window.leafletMap.invalidateSize();
-    }, 250);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
 
-    // Handle Map Clicks
-    window.leafletMap.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
-        
-        document.getElementById('doc-lat').value = lat;
-        document.getElementById('doc-long').value = lng;
-
-        if (docMarker) {
-            window.leafletMap.removeLayer(docMarker);
+        if (data && data.length > 0) {
+            document.getElementById('doc-lat').value = parseFloat(data[0].lat).toFixed(6);
+            document.getElementById('doc-long').value = parseFloat(data[0].lon).toFixed(6);
+            alert("Coordinates found automatically!");
+        } else {
+            alert("Could not find this address. Try adding city and country, or enter coordinates manually.");
         }
-        
-        docMarker = L.marker([lat, lng]).addTo(window.leafletMap)
-            .bindPopup("Selected Location").openPopup();
-    });
+    } catch (error) {
+        console.error("Geocoding error:", error);
+        alert("Error fetching location data. You can enter the coordinates manually.");
+    }
 }
 
 const TabNearbyHospitals = () => `
@@ -2427,11 +2410,6 @@ function render() {
     if (state.activeTab === 'support') {
         const historyContainer = document.getElementById('chat-history');
         if (historyContainer) historyContainer.scrollTop = historyContainer.scrollHeight;
-    }
-    
-    // Initialize Leaflet Map if we're on the Doctor Profile tab
-    if (state.user && (state.user.role === 'doctor' || state.user.role === 'receptionist') && state.activeTab === 'profile') {
-        setTimeout(initDoctorMap, 300);
     }
 }
 
