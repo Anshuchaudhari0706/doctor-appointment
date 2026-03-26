@@ -1232,6 +1232,11 @@ window.initDoctorMap = function() {
             .bindPopup("Hospital Location").openPopup();
     }
 
+    // Force map to recalculate bounding box (fixes gray map issues on dynamic rendering)
+    setTimeout(() => {
+        window.leafletMap.invalidateSize();
+    }, 250);
+
     // Handle Map Clicks
     window.leafletMap.on('click', function(e) {
         const lat = e.latlng.lat.toFixed(6);
@@ -2426,7 +2431,7 @@ function render() {
     
     // Initialize Leaflet Map if we're on the Doctor Profile tab
     if (state.user && (state.user.role === 'doctor' || state.user.role === 'receptionist') && state.activeTab === 'profile') {
-        setTimeout(initDoctorMap, 100);
+        setTimeout(initDoctorMap, 300);
     }
 }
 
