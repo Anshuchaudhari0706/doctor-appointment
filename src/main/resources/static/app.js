@@ -116,6 +116,8 @@ function setTab(tab) {
         if (tab === 'doctors') fetchAdminDoctors();
         if (tab === 'patients') fetchAdminPatients();
         if (tab === 'receptionists') fetchAdminReceptionists();
+    }
+    if (role === 'doctor' || role === 'receptionist') {
         if (tab === 'beds') fetchAdminBeds();
         if (tab === 'blood-bank') fetchAdminBloodBank();
     }
@@ -620,6 +622,8 @@ const DoctorNavbar = () => `
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'My Patients')}
             ${navItem('receptionists', 'fas fa-user-nurse', 'My Receptionists')}
+            ${navItem('beds', 'fas fa-bed', 'Manage Beds')}
+            ${navItem('blood-bank', 'fas fa-tint', 'Blood Bank')}
             ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
         </div>
         <div class="mt-auto">
@@ -645,8 +649,6 @@ const AdminNavbar = () => `
             ${navItem('patients', 'fas fa-users', 'Manage Patients')}
             ${navItem('receptionists', 'fas fa-user-nurse', 'Manage Receptionists')}
             ${navItem('appointments', 'fas fa-calendar-alt', 'All Appointments')}
-            ${navItem('beds', 'fas fa-bed', 'Manage Beds')}
-            ${navItem('blood-bank', 'fas fa-tint', 'Blood Bank')}
             ${navItem('settings', 'fas fa-cog', 'System Settings')}
         </div>
         <div class="mt-auto">
@@ -679,6 +681,8 @@ const ReceptionistNavbar = () => `
             ${navItem('my-schedule', 'fas fa-clock', 'My Schedule')}
             ${navItem('appointments', 'fas fa-calendar-check', 'Appointments')}
             ${navItem('patients', 'fas fa-users', 'Patients')}
+            ${navItem('beds', 'fas fa-bed', 'Manage Beds')}
+            ${navItem('blood-bank', 'fas fa-tint', 'Blood Bank')}
             ${navItem('profile', 'fas fa-user-cog', 'Profile & Settings')}
         </div>
         <div class="mt-auto">
@@ -951,8 +955,10 @@ function renderDoctorTabs() {
         case 'appointments': return DoctorAppointments();
         case 'calendar': return TabCalendar();
         case 'patients': return DoctorPatients();
-        case 'receptionists': return DoctorReceptionists(); // New view for doctors
-        case 'profile': return TabDoctorProfile(); // Use your existing profile form
+        case 'receptionists': return DoctorReceptionists();
+        case 'beds': return AdminManageBeds();
+        case 'blood-bank': return AdminManageBloodBank();
+        case 'profile': return TabDoctorProfile();
         default: return DoctorDashboardHome();
     }
 }
@@ -964,6 +970,8 @@ function renderReceptionistTabs() {
         case 'appointments': return DoctorAppointments();
         case 'calendar': return TabCalendar();
         case 'patients': return DoctorPatients();
+        case 'beds': return AdminManageBeds();
+        case 'blood-bank': return AdminManageBloodBank();
         case 'profile': return TabDoctorProfile();
         default: return DoctorDashboardHome();
     }
@@ -976,8 +984,6 @@ function renderAdminTabs() {
         case 'patients': return AdminManagePatients();
         case 'receptionists': return AdminManageReceptionists();
         case 'appointments': return AdminManageAppointments();
-        case 'beds': return AdminManageBeds();
-        case 'blood-bank': return AdminManageBloodBank();
         case 'settings': return AdminSystemSettings();
         default: return AdminDashboardHome();
     }
