@@ -1731,6 +1731,9 @@ const TabBookings = () => `
                             <button class="btn btn-ghost btn-sm" onclick="rateDoctor('${apt.id}')"><i class="fas fa-star"></i> Rate</button>
                         ` : ''}
                         <button class="btn btn-outline btn-sm" onclick="showQRCode('${apt.id}')"><i class="fas fa-qrcode"></i> View QR Check-In</button>
+                        ${apt.status !== 'CANCELLED' && apt.status !== 'PENDING' ? `
+                            <button class="btn btn-outline btn-sm" style="border-color:var(--primary);color:var(--primary);" onclick="openChatModal('${apt.id}', '${(apt.doctorName||'').replace(/'/g,"\\'")}')"><i class="fas fa-comments"></i> Live Chat</button>
+                        ` : ''}
                         ${apt.rating ? `<span style="color:#f59e0b; font-size:0.8rem;"><i class="fas fa-star"></i> ${apt.rating}/5</span>` : ''}
                     </div>
                 </div>
@@ -2894,3 +2897,121 @@ if (state.user) {
     // Otherwise render login page
     render();
 }
+
+// =============================================
+// FEATURE 1: REAL-TIME LIVE CHAT (WebSockets)
+// =============================================
+
+let stompClient = null;
+let currentChatAptId = null;
+
+window.openChatModal = function(aptId, doctorName) {
+    currentChatAptId = aptId;
+
+    // Remove any existing modal
+    const existing = document.getElementById('chat-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'chat-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.65);display:flex;justify-content:center;align-items:center;z-index:9999;';
+
+    overlay.innerHTML = `
+        <div style="background:var(--surface);border-radius:16px;width:420px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+            <div style="background:var(--primary);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-weight:700;color:white;font-size:1.1rem;"><i class="fas fa-comments"></i> Live Chat</div>
+                    <div style="color:rgba(255,255,255,0.75);font-size:0.8rem;">With Dr. ${doctorName}</div>
+                </div>
+                <button onclick="closeChatModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="chat-messages" style="flex:1;padding:1rem;height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.75rem;background:var(--bg);">
+                <div style="text-align:center;color:var(--text-secondary);font-size:0.8rem;">Connecting to chat room...</div>
+            </div>
+            <div style="padding:1rem;border-top:1px solid rgba(255,255,255,0.1);display:flex;gap:0.5rem;">
+                <input id="chat-input" type="text" placeholder="Type a message..." 
+                    style="flex:1;padding:0.6rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--text-primary);outline:none;"
+                    onkeydown="if(event.key==='Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" style="background:var(--primary);color:white;border:none;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    connectWebSocket(aptId);
+};
+
+window.closeChatModal = function() {
+    if (stompClient) {
+        stompClient.disconnect();
+        stompClient = null;
+    }
+    const overlay = document.getElementById('chat-modal-overlay');
+    if (overlay) overlay.remove();
+};
+
+function connectWebSocket(aptId) {
+    const socket = new SockJS('/ws-chat');
+    stompClient = Stomp.over(socket);
+    stompClient.debug = null; // Suppress debug logs
+
+    stompClient.connect({}, function() {
+        stompClient.subscribe('/topic/public/' + aptId, function(payload) {
+            const message = JSON.parse(payload.body);
+            displayChatMessage(message);
+        });
+
+        // Announce user joined
+        const sender = state.user ? state.user.name : 'Guest';
+        const role = state.user ? state.user.role : 'patient';
+        stompClient.send('/app/chat/' + aptId + '/addUser', {}, JSON.stringify({ sender, role, content: sender + ' joined the chat.' }));
+
+        const messagesDiv = document.getElementById('chat-messages');
+        if (messagesDiv) messagesDiv.innerHTML = '';
+    }, function(err) {
+        const messagesDiv = document.getElementById('chat-messages');
+        if (messagesDiv) messagesDiv.innerHTML = '<div style="text-align:center;color:#ef4444;font-size:0.85rem;">Connection failed. Please refresh and try again.</div>';
+    });
+}
+
+window.sendChatMessage = function() {
+    const input = document.getElementById('chat-input');
+    if (!input || !input.value.trim() || !stompClient) return;
+
+    const sender = state.user ? state.user.name : 'Guest';
+    const role = state.user ? state.user.role : 'patient';
+
+    stompClient.send('/app/chat/' + currentChatAptId + '/sendMessage', {}, JSON.stringify({
+        sender,
+        role,
+        content: input.value.trim()
+    }));
+    input.value = '';
+};
+
+function displayChatMessage(message) {
+    const messagesDiv = document.getElementById('chat-messages');
+    if (!messagesDiv) return;
+
+    const isMine = state.user && message.sender === state.user.name;
+    const isSystem = !message.role || message.content.endsWith('joined the chat.');
+
+    const msgEl = document.createElement('div');
+
+    if (isSystem) {
+        msgEl.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:0.75rem;';
+        msgEl.textContent = message.content;
+    } else {
+        msgEl.style.cssText = `display:flex;flex-direction:column;align-items:${isMine ? 'flex-end' : 'flex-start'};`;
+        msgEl.innerHTML = `
+            <div style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:2px;">${message.sender} (${message.role})</div>
+            <div style="background:${isMine ? 'var(--primary)' : 'rgba(255,255,255,0.08)'};color:${isMine ? 'white' : 'var(--text-primary)'};padding:0.5rem 0.85rem;border-radius:${isMine ? '12px 12px 4px 12px' : '12px 12px 12px 4px'};max-width:80%;font-size:0.9rem;word-break:break-word;">
+                ${message.content}
+            </div>
+        `;
+    }
+
+    messagesDiv.appendChild(msgEl);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
