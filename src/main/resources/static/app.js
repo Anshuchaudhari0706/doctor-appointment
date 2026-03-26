@@ -1067,14 +1067,19 @@ const DoctorSchedule = () => `
                     <label class="form-label">Hospital Address</label>
                     <input type="text" id="doc-address" class="form-input" placeholder="123 Street, City" value="${state.doctorProfile?.hospitalAddress || ''}">
                 </div>
-                <div class="mt-2">
-                    <label class="form-label">Location Coordinates</label>
-                    <div style="display:flex; gap:0.5rem;">
-                        <input type="text" id="doc-lat" class="form-input" placeholder="Latitude" value="${state.doctorProfile?.latitude || ''}" readonly>
-                        <input type="text" id="doc-long" class="form-input" placeholder="Longitude" value="${state.doctorProfile?.longitude || ''}" readonly>
-                        <button type="button" class="btn btn-secondary" onclick="getLocation()"><i class="fas fa-map-marker-alt"></i> Get Current Location</button>
+                
+                <div class="mt-2" style="background:rgba(16,185,129,0.05); border:1px dashed #10b981; padding:1rem; border-radius:8px;">
+                    <label class="form-label" style="color:#10b981;"><i class="fas fa-map-marker-alt"></i> Hospital Location (Google Maps)</label>
+                    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                        <input type="text" id="gmaps-url" class="form-input" placeholder="Paste Google Maps browser URL here..." style="flex:1;">
+                        <button type="button" class="btn btn-primary" onclick="parseGoogleMapsUrl()" style="background:#10b981; border:none;">Extract Coordinates</button>
                     </div>
-                    <p class="text-sm text-muted mt-1">Click to auto-detect your hospital location.</p>
+                    
+                    <label class="form-label text-sm text-muted">Or manually enter exact coordinates:</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="doc-lat" class="form-input" placeholder="Latitude (e.g. 37.422)" value="${state.doctorProfile?.latitude || ''}">
+                        <input type="text" id="doc-long" class="form-input" placeholder="Longitude (e.g. -122.084)" value="${state.doctorProfile?.longitude || ''}">
+                    </div>
                 </div>
             </div>
             
@@ -1201,20 +1206,23 @@ window.updateAvailability = async function (e) {
     }
 };
 
-window.getLocation = function () {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                document.getElementById('doc-lat').value = position.coords.latitude;
-                document.getElementById('doc-long').value = position.coords.longitude;
-                alert("Location Detected: " + position.coords.latitude + ", " + position.coords.longitude);
-            },
-            (error) => {
-                alert("Error getting location: " + error.message);
-            }
-        );
+window.parseGoogleMapsUrl = function() {
+    const url = document.getElementById('gmaps-url').value;
+    if(!url) {
+        alert("Please paste a Google Maps link first");
+        return;
+    }
+
+    // RegEx match for /@latitude,longitude
+    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = url.match(regex);
+    
+    if (match && match.length >= 3) {
+        document.getElementById('doc-lat').value = match[1];
+        document.getElementById('doc-long').value = match[2];
+        alert("Extracted coordinates successfully!");
     } else {
-        alert("Geolocation is not supported by this browser.");
+        alert("Could not extract coordinates directly. Please ensure you copied the URL from the browser address bar while viewing the location on Google Maps (it should contain @lat,lng). Alternatively, enter them manually.");
     }
 }
 
