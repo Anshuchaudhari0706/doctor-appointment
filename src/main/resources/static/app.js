@@ -1665,7 +1665,7 @@ const DoctorAppointments = () => `
     `;
 
 const DoctorPatients = () => `
-    < div class="grid-cols-2" >
+    <div class="grid-cols-2">
         <div class="card">
              <div class="card-header"><div class="card-title">Upload Medical Report</div></div>
              <div id="report-success-box" style="display:none; margin-bottom:1rem;"></div>
@@ -1698,7 +1698,7 @@ const DoctorPatients = () => `
                 <p class="text-muted">No recent history.</p>
              </div>
         </div>
-    </div >
+    </div>
     `;
 
 async function submitMedicalReport(e) {
